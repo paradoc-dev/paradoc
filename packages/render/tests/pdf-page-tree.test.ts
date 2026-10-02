@@ -147,6 +147,16 @@ describe('addPageResource', () => {
     const resources = model.dict(page(model, pages[1]!).entries.get('Resources'))
     expect([...model.dict(resources?.entries.get('Font'))!.entries.keys()]).toEqual(['F2', 'F3', 'F4'])
   })
+
+  it('returns the name to draw by, renaming rather than replacing a different resource', async () => {
+    const { model, pages } = await nestedPages()
+    expect(addPageResource(model, pages[1]!, 'Font', 'F3', ref(9))).toBe('F3')
+    expect(addPageResource(model, pages[1]!, 'Font', 'F3', ref(9))).toBe('F3')
+    expect(addPageResource(model, pages[1]!, 'Font', 'F3', ref(10))).toBe('F3_1')
+    expect(addPageResource(model, pages[1]!, 'Font', 'F3', ref(11))).toBe('F3_2')
+    const fonts = model.dict(model.dict(page(model, pages[1]!).entries.get('Resources'))?.entries.get('Font'))!
+    expect([fonts.entries.get('F3'), fonts.entries.get('F3_1'), fonts.entries.get('F3_2')]).toEqual([ref(9), ref(10), ref(11)])
+  })
 })
 
 describe('appendPageContent', () => {

@@ -132,8 +132,9 @@ async function renderPdf(options: RenderPdfOptions): Promise<Uint8Array>
 A `PdfOverlay` is either text or an image placed at `page` (one-based), `x`,
 and `y` (PDF points from the bottom-left corner). A text overlay carries `text`
 or a `field` path to read from the data (with or without the `fields.` prefix), plus optional `fontSize`, `width`,
-`height`, and `color`. Overlay text follows the same font order and failure
-rules as field values, and a text overlay with a `width` fails with an
+`height`, `color`, and `font`. Overlay text follows the same font order and failure
+rules as field values, after the overlay's own `font` when it names one, so one
+render can draw a heading in a bold font and body text in a regular one. A text overlay with a `width` fails with an
 `overflow` error when its text does not fit at 6 points. An image overlay
 carries `image` bytes, `mediaType` (`'image/png'` or `'image/jpeg'`), `width`,
 `height`, and optional `fit`.
@@ -419,6 +420,17 @@ const output = await filled.render({
 ```
 
 `pdfRenderer({ font })` and `renderPdf({ font, layerFont })` take the same `PdfFont`: the font's `bytes` and a `source` that errors name it by. Every font used to draw is embedded in the output, so the PDF displays the same in any viewer. Only TrueType-outline fonts are supported; an OpenType font with CFF outlines, a font collection, or a WOFF file is refused.
+
+To lay out overlay text yourself, measure it first. `pdfFontMetrics(font)` reads a `PdfFont` and returns `canDraw(text)`, true when every character has a glyph and none needs shaping, and `width(text, size)`, the width in points that an overlay draws:
+
+```ts
+import { pdfFontMetrics } from '@paradoc/render/pdf'
+
+const metrics = pdfFontMetrics(font)
+if (metrics.canDraw(name) && metrics.width(name, 10) <= 495) {
+  // draw `name` as one overlay line
+}
+```
 
 Filling draws one glyph per character, left to right. It does not shape text, so Arabic, Hebrew, Devanagari, Thai, and other scripts that need shaping or right-to-left ordering are refused, whatever font is available. Render documents in those scripts from a [React composition layer](/guides/react-layers).
 

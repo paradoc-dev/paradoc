@@ -92,15 +92,20 @@ export function cloneDict(dict: PdfDict | undefined): PdfDict {
   return { kind: 'dict', entries: new Map(dict?.entries) }
 }
 
-/** Register a named resource (a font or an XObject) on a page. */
+/**
+ * Register a named resource (a font or an XObject) on a page, and return the
+ * name to draw it by. That is `name` unless the page already holds a different
+ * resource under it, as it does when an earlier render drew on this page; then
+ * a numeric suffix keeps the earlier content drawing what it drew.
+ */
 export function addPageResource(
   model: PdfModel,
   page: PageRecord,
   category: 'Font' | 'XObject',
   name: string,
   ref: PdfRef,
-): void {
-  if (!isDict(page.record.value)) return
+): string {
+  if (!isDict(page.record.value)) return name
   // The page's own entry first, and freshly: an earlier widget or overlay on
   // this page has already written its resource dictionary there, and reading
   // the walk's snapshot instead would drop it.
@@ -108,10 +113,15 @@ export function addPageResource(
     model.dict(page.record.value.entries.get('Resources') ?? page.inherited.get('Resources')),
   )
   const entries = cloneDict(model.dict(resources.entries.get(category)))
-  entries.entries.set(name, ref)
+  const holds = (candidate: string, value = entries.entries.get(candidate)) =>
+    value !== undefined && !(isRef(value) && value.object === ref.object && value.generation === ref.generation)
+  let free = name
+  for (let suffix = 1; holds(free); suffix++) free = `${name}_${suffix}`
+  entries.entries.set(free, ref)
   resources.entries.set(category, entries)
   page.record.value.entries.set('Resources', resources)
   model.markUpdated(page.record)
+  return free
 }
 
 /** Draw a content stream after everything the page already draws. */

@@ -1,5 +1,5 @@
 import { unzlibSync, zlibSync } from 'fflate'
-import type { PdfFontSet } from './drawing-fonts'
+import type { PdfFont, PdfFontSet } from './drawing-fonts'
 import { MIN_FONT_SIZE, PdfFieldFillError, type DrawingFont } from './field-appearance'
 import { type PdfRef, PdfModel, type PdfValue } from './syntax'
 import { getPath } from '../path'
@@ -26,6 +26,11 @@ export type PdfTextOverlay = PdfOverlayBase & {
   height?: number
   /** RGB components in the range 0–1. */
   color?: [number, number, number]
+  /**
+   * A font for this overlay alone, tried before the render's other fonts, so
+   * one render can draw text in more than one font (a bold heading, say).
+   */
+  font?: PdfFont
 } & (
   | { text: string | number | boolean; field?: never }
   | { field: string; text?: never }
@@ -250,14 +255,14 @@ export function applyPdfOverlays(
   for (const [pageNumber, items] of grouped) {
     const page = pages[pageNumber - 1]!
     const commands: string[] = []
-    const pageFonts = new Map<string, PdfRef>()
+    /** The name each font draws by on this page. */
+    const pageFonts = new Map<string, string>()
     for (const overlay of items) {
       if ('image' in overlay) {
         const embedded = overlay.mediaType === 'image/png'
           ? embedPng(model, overlay.image)
           : embedJpeg(model, overlay.image)
-        const name = `PdrI${imageIndex++}`
-        addPageResource(model, page, 'XObject', name, embedded.ref)
+        const name = addPageResource(model, page, 'XObject', `PdrI${imageIndex++}`, embedded.ref)
         const scale = overlay.fit === 'fill'
           ? undefined
           : Math.min(overlay.width / embedded.width, overlay.height / embedded.height)
@@ -268,15 +273,18 @@ export function applyPdfOverlays(
       }
       const text = String(textValue(overlay, data) ?? '').replace(/\r\n|\r|\n/g, ' ')
       const subject = overlaySubject(overlay, overlays.indexOf(overlay))
-      const font = fonts.select(subject, text)
-      pageFonts.set(font.resourceName, font.reference())
+      const font = fonts.select(subject, text, undefined, overlay.font)
+      let fontName = pageFonts.get(font.resourceName)
+      if (fontName === undefined) {
+        fontName = addPageResource(model, page, 'Font', font.resourceName, font.reference())
+        pageFonts.set(font.resourceName, fontName)
+      }
       const size = fittedFontSize(text, overlay, font, subject)
       const x = overlay.x + (overlay.width === undefined ? 0 : 1)
       const y = overlay.y + (overlay.height === undefined ? 0 : Math.max(1, (overlay.height - size) / 2))
       const [red, green, blue] = (overlay.color ?? [0, 0, 0]).map(component)
-      commands.push(`BT\n/${font.resourceName} ${size} Tf\n${red} ${green} ${blue} rg\n${x} ${y} Td\n${font.encode(text)} Tj\nET`)
+      commands.push(`BT\n/${fontName} ${size} Tf\n${red} ${green} ${blue} rg\n${x} ${y} Td\n${font.encode(text)} Tj\nET`)
     }
-    for (const [name, ref] of pageFonts) addPageResource(model, page, 'Font', name, ref)
     const stream = model.addObject({ kind: 'dict', entries: new Map() }, new TextEncoder().encode(`q\n${commands.join('\n')}\nQ`))
     appendPageContent(model, page, stream)
   }

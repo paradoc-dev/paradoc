@@ -112,8 +112,7 @@ export async function flattenPdf(template: BinaryContent): Promise<Uint8Array> {
       if (appearance) {
         const transform = placement(model, widget, appearance)
         if (transform) {
-          const name = `PdrA${appearanceIndex++}`
-          addPageResource(model, page, 'XObject', name, appearance)
+          const name = addPageResource(model, page, 'XObject', `PdrA${appearanceIndex++}`, appearance)
           appendPageContent(
             model,
             page,

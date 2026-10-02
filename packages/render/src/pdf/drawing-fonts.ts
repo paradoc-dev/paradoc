@@ -40,6 +40,20 @@ const SHAPED_SCRIPTS = [
 const LINE_BREAK = /[\r\n]/u
 const WHITESPACE = /\s/u
 
+/** The first script in `text` that needs shaping, or `undefined` when there is none. */
+function shapedScript(text: string): string | undefined {
+  return SHAPED_SCRIPTS.find(({ pattern }) => pattern.test(text))?.script
+}
+
+/** True when every character of `text` has a glyph in `program` that paints. */
+function programCovers(program: TrueTypeFont, text: string): boolean {
+  return [...text].every((character) => {
+    if (LINE_BREAK.test(character)) return true
+    const glyph = program.glyphFor(character.codePointAt(0)!)
+    return glyph !== 0 && (WHITESPACE.test(character) || program.hasOutline(glyph))
+  })
+}
+
 const hex4 = (value: number) => value.toString(16).padStart(4, '0').toUpperCase()
 
 /** A font this render can draw with, embedded in the output the first time it is used. */
@@ -123,11 +137,7 @@ class EmbeddedTrueType implements CandidateFont {
   }
 
   covers(text: string): boolean {
-    return [...text].every((character) => {
-      if (LINE_BREAK.test(character)) return true
-      const glyph = this.glyph(character)
-      return glyph !== 0 && (WHITESPACE.test(character) || this.program.hasOutline(glyph))
-    })
+    return programCovers(this.program, text)
   }
 
   width(text: string): number {
@@ -290,6 +300,7 @@ export class PdfFontSet {
   private readonly helvetica: StandardHelvetica
   private readonly supplied: EmbeddedTrueType[]
   private readonly formFonts = new Map<string, EmbeddedTrueType>()
+  private readonly overlayFonts = new Map<Uint8Array, EmbeddedTrueType>()
   private readonly drawn = new Set<CandidateFont>()
 
   private constructor(private readonly model: PdfModel, supplied: EmbeddedTrueType[]) {
@@ -317,27 +328,48 @@ export class PdfFontSet {
     }
   }
 
+  /** A font one overlay names, read on first use and embedded once however many overlays name it. */
+  private overlayFont(font: PdfFont): EmbeddedTrueType {
+    let embedded = this.overlayFonts.get(font.bytes)
+    if (!embedded) {
+      embedded = new EmbeddedTrueType(this.model, parseSupplied(font), `PdrFontOverlay${this.overlayFonts.size}`, font.bytes)
+      this.overlayFonts.set(font.bytes, embedded)
+    }
+    return embedded
+  }
+
   /**
    * The first font that can draw every character of `text`.
    *
    * @param subject - The field or overlay, named in errors.
    * @param formFont - The form font resource the field's appearance names.
+   * @param overlayFont - The font a text overlay names; it is tried first.
    * @throws {PdfFieldFillError} for a script that needs shaping, or a character no font can draw.
+   * @throws {PdfFontError} when `overlayFont` cannot be used.
    */
-  select(subject: string, text: string, formFont?: string): DrawingFont & Pick<CandidateFont, 'covers' | 'reference'> {
-    for (const { script, pattern } of SHAPED_SCRIPTS) {
-      if (pattern.test(text)) {
-        throw new PdfFieldFillError(
-          subject,
-          'unsupported-script',
-          { script },
-          `the value contains ${script} script, which needs glyph shaping that PDF form filling and overlays do not do. ` +
-            'Render documents in this script from a React composition layer.',
-        )
-      }
+  select(
+    subject: string,
+    text: string,
+    formFont?: string,
+    overlayFont?: PdfFont,
+  ): DrawingFont & Pick<CandidateFont, 'covers' | 'reference'> {
+    const script = shapedScript(text)
+    if (script) {
+      throw new PdfFieldFillError(
+        subject,
+        'unsupported-script',
+        { script },
+        `the value contains ${script} script, which needs glyph shaping that PDF form filling and overlays do not do. ` +
+          'Render documents in this script from a React composition layer.',
+      )
     }
     const own = formFont === undefined ? undefined : this.formFonts.get(formFont)
-    const candidates: CandidateFont[] = [...this.supplied, ...(own ? [own] : []), this.helvetica]
+    const candidates: CandidateFont[] = [
+      ...(overlayFont ? [this.overlayFont(overlayFont)] : []),
+      ...this.supplied,
+      ...(own ? [own] : []),
+      this.helvetica,
+    ]
     const chosen = candidates.find((font) => font.covers(text))
     if (chosen) {
       this.drawn.add(chosen)
@@ -361,5 +393,37 @@ export class PdfFontSet {
   /** Write widths and Unicode maps for every embedded font this render drew with. */
   finish(): void {
     for (const font of this.drawn) font.finish()
+  }
+}
+
+/** Measures text in a supplied font, the way filling and overlays draw it. */
+export interface PdfFontMetrics {
+  /**
+   * True when filling or an overlay can draw every character of `text` in
+   * this font: each has a glyph that paints, and none is in a script that
+   * needs shaping.
+   */
+  canDraw(text: string): boolean
+  /** The width of `text` in points at `size`, ignoring line breaks. */
+  width(text: string, size: number): number
+}
+
+/**
+ * Metrics for a supplied font, so a caller can wrap or fall back before it
+ * draws overlay text with that font.
+ *
+ * @throws {PdfFontError} when the font cannot be used, naming its source.
+ */
+export function pdfFontMetrics(font: PdfFont): PdfFontMetrics {
+  const program = parseSupplied(font)
+  return {
+    canDraw: (text) => shapedScript(text) === undefined && programCovers(program, text),
+    width: (text, size) => {
+      let units = 0
+      for (const character of text) {
+        if (!LINE_BREAK.test(character)) units += program.advance(program.glyphFor(character.codePointAt(0)!))
+      }
+      return units * size / program.unitsPerEm
+    },
   }
 }

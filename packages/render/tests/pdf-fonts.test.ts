@@ -14,6 +14,7 @@ import {
   inspectAcroFormFields,
   PdfFieldFillError,
   PdfFontError,
+  pdfFontMetrics,
   renderPdf,
   type PdfFont,
   type RenderPdfOptions,
@@ -220,11 +221,75 @@ describe('overlays', () => {
     await expect(overlayPdf('שלום', { layerFont: liberation })).rejects.toMatchObject({ reason: 'unsupported-script', script: 'Hebrew' })
   })
 
+  it('draws each overlay in the font it names, in drawing order, before the render font', async () => {
+    const cyrillic: PdfFont = { bytes: syntheticFont({ name: 'ParadocTestCyrillic', characters: 'Жук ' }), source: 'cyrillic.ttf' }
+    const flat = await renderPdf({
+      template: pagePdf([[300, 300]]),
+      data: {},
+      overlays: [
+        { page: 1, x: 20, y: 80, text: 'Жук', font: cyrillic },
+        { page: 1, x: 20, y: 60, text: 'Жук' },
+        { page: 1, x: 20, y: 40, text: 'Жук', font: cyrillic },
+      ],
+      font: liberation,
+    })
+    const items = await textItemsWithPdfjs(flat)
+    expect(items.map((item) => item.text)).toEqual(['Жук', 'Жук', 'Жук'])
+    const fonts = await fontsWithPdfjs(flat)
+    expect(fonts.map((font) => font.name).sort()).toEqual(['LiberationSans', 'ParadocTestCyrillic'])
+    // Named once, embedded once.
+    expect(Buffer.from(flat).toString('latin1').match(/\/BaseFont \/ParadocTestCyrillic/g)).toHaveLength(2)
+  })
+
+  it('falls back from an overlay font that cannot draw the text, and names an unusable one', async () => {
+    const cyrillic: PdfFont = { bytes: syntheticFont({ name: 'ParadocTestCyrillic', characters: 'Жук' }), source: 'cyrillic.ttf' }
+    const flat = await renderPdf({ template: pagePdf([[300, 300]]), data: {}, overlays: [{ page: 1, x: 20, y: 20, text: 'Ωμέγα', font: cyrillic }], font: liberation })
+    expect(await fontsWithPdfjs(flat)).toEqual([{ name: 'LiberationSans', missingFile: false }])
+    const bad = renderPdf({ template: pagePdf([[300, 300]]), data: {}, overlays: [{ page: 1, x: 20, y: 20, text: 'a', font: { bytes: new Uint8Array(13), source: 'fonts/bad.ttf' } }] })
+    await expect(bad).rejects.toMatchObject({ name: 'PdfFontError', source: 'fonts/bad.ttf', problem: 'unreadable' })
+  })
+
+  it('keeps earlier overlay text in its own font when a later render draws on the same page', async () => {
+    const cyrillic: PdfFont = { bytes: syntheticFont({ name: 'ParadocTestCyrillic', characters: 'Жук' }), source: 'cyrillic.ttf' }
+    const first = await renderPdf({ template: pagePdf([[300, 300]]), data: {}, overlays: [{ page: 1, x: 20, y: 20, text: 'Жук' }], font: cyrillic })
+    const second = await renderPdf({ template: first, data: {}, overlays: [{ page: 1, x: 20, y: 60, text: 'Ωμέγα' }], font: liberation })
+    expect((await textItemsWithPdfjs(second)).map((item) => item.text)).toEqual(['Жук', 'Ωμέγα'])
+    expect((await fontsWithPdfjs(second)).map((font) => font.name).sort()).toEqual(['LiberationSans', 'ParadocTestCyrillic'])
+  })
+
   it('shrinks to fit its width, and fails with an overflow error below the minimum size', async () => {
     const fitted = await textItemsWithPdfjs(await overlayPdf('A little wide', {}, 50))
     expect(fitted[0]!.size).toBeLessThan(12)
     expect(fitted[0]!.width).toBeLessThanOrEqual(50.01)
     await expect(overlayPdf('Far too long for twenty points', {}, 20)).rejects.toMatchObject({ reason: 'overflow', limit: 6 })
+  })
+})
+
+describe('font metrics', () => {
+  it('says whether filling can draw text in the font, glyph by glyph', () => {
+    const metrics = pdfFontMetrics(liberation)
+    expect(metrics.canDraw('Жук Ωμέγα\n')).toBe(true)
+    expect(metrics.canDraw('Жук 中')).toBe(false)
+    const hollow = pdfFontMetrics({ bytes: syntheticFont({ name: 'ParadocTestHollow', characters: '中', blank: '空' }), source: 'hollow.ttf' })
+    expect([hollow.canDraw('中'), hollow.canDraw('空')]).toEqual([true, false])
+  })
+
+  it('refuses a script that needs shaping even when the font covers it', () => {
+    const covering = pdfFontMetrics({ bytes: syntheticFont({ name: 'ParadocTestCovering', characters: 'שלום' }), source: 'covering.ttf' })
+    expect(covering.canDraw('שלום')).toBe(false)
+  })
+
+  it('measures text as overlays draw it', async () => {
+    const width = pdfFontMetrics(liberation).width('Жук Ωμέγα', 10)
+    expect(width).toBeGreaterThan(0)
+    const flat = await renderPdf({ template: pagePdf([[300, 300]]), data: {}, overlays: [{ page: 1, x: 20, y: 20, text: 'Жук Ωμέγα', fontSize: 10 }], layerFont: liberation })
+    const drawn = (await textItemsWithPdfjs(flat)).reduce((total, item) => total + item.width, 0)
+    expect(width).toBeCloseTo(drawn, 1)
+    expect(pdfFontMetrics(liberation).width('Жук Ωμέγα', 20)).toBeCloseTo(width * 2, 6)
+  })
+
+  it('fails naming the source of a font it cannot read', () => {
+    expect(() => pdfFontMetrics({ bytes: new Uint8Array(13), source: 'fonts/bad.ttf' })).toThrow(PdfFontError)
   })
 })
 
