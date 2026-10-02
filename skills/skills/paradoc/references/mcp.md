@@ -195,10 +195,10 @@ A `402` from `create_payment` names its cause: no connected Stripe account (star
 
 | Limit | Value |
 |-------|-------|
-| Rate limit, `mcp.paradoc.dev` | 60 requests to `/mcp` (`POST`, `GET` and `DELETE`) per 60 seconds per client IP |
-| Rate limit, `mcp-dev.paradoc.dev` | 60 per 60 seconds |
+| Rate limit per credential | 60 requests to `/mcp` (`POST`, `GET` and `DELETE`) per 60 seconds per API key or OAuth connection |
+| Rate limit per client IP | 600 requests to `/mcp` per 60 seconds, across all credentials from that IP |
 | `extract`, `prefill` document | 10 MB. Larger documents: `extract_job_submit` (about 18.75 MB, 100 pages). |
 
-The session handshake counts against the rate limit. A `GET` that opens the server-to-client stream counts once, when it opens; an open stream is not cut off. A normal handshake and `tools/list` leave room for an active fill loop within the 60-request window. Request 61 from the same client IP gets `429`; wait for the 60-second window to reset. For larger workloads, use the npm tools ([ai-tools.md](./ai-tools.md)), the SDK ([sdk.md](./sdk.md)) or the CLI ([cli.md](./cli.md)) locally.
+The session handshake counts against the rate limit. A `GET` that opens the server-to-client stream counts once, when it opens; an open stream is not cut off. A normal handshake and `tools/list` leave room for an active fill loop within the 60-request window. Request 61 with the same credential gets `429`; wait for the 60-second window to reset. Other credentials behind the same IP keep their own budget. For larger workloads, use the npm tools ([ai-tools.md](./ai-tools.md)), the SDK ([sdk.md](./sdk.md)) or the CLI ([cli.md](./cli.md)) locally.
 
 Every tool signals a failed call the same way: the result has `isError: true` and its text is the error message. A result without `isError` is the tool's answer, which can still report a validation outcome (`valid: false`, `accepted: false`, `success: false` with `errors` or `validation_issues`).
