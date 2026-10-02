@@ -79,13 +79,15 @@ The response contains `valid`, `document`, `signature_map`, and
   "content_base64": "JVBERi0xLjQK...",
   "source_mime_type": "application/pdf",
   "target_mime_type": "text/markdown",
-  "filename": "source.pdf",
   "pages": "1,3-5"
 }
 ```
 
 Send the API key in the `x-api-key` header. The response document contains
 `content_base64`, `mime_type`, `size_bytes`, and `pages` when the output is PDF.
+
+`content_base64` is at most 26,213,376 characters, about 18.7 MiB of document
+bytes. Longer input fails request validation.
 
 | Target | Supported sources |
 |--------|-------------------|
@@ -107,6 +109,17 @@ Send the API key in the `x-api-key` header. The response document contains
 Malformed selectors fail request validation. If a selected page does not exist,
 the API returns `422` with `reason: "pages_out_of_range"`, the actual page count,
 and the invalid page numbers.
+
+### Conversion errors
+
+A failed conversion returns one of these errors with a fixed message.
+
+| Status | `reason` | Meaning |
+|--------|----------|---------|
+| `422` | `document_unconvertible` | The converter could not read the document. |
+| `413` | `document_too_large` | The converter refused the document for its size. |
+| `504` | `conversion_timeout` | The conversion did not finish in time. Retry. |
+| `503` | `conversion_unavailable` | The converter is down or busy. Retry. |
 
 PDF conversion is metered per returned page. Markdown conversion is metered as
 one parse operation.
