@@ -104,10 +104,10 @@ These two run on an artifact object you pass in. They make no outbound call.
 
 | Tool | Arguments | Returns |
 |------|-----------|---------|
-| `validate` | `artifact` (object), `options?: { schema?: boolean, logic?: boolean }` (both default `true`) | `{ valid, detectedKind?, issues?: [{ message, path? }], error? }` |
-| `fill` | `artifact` (form or checklist object), `data` | `{ accepted, complete, artifactKind, data?, errors?: [{ field, message }], error? }` |
+| `validate` | `artifact` (object), `options?: { schema?: boolean, logic?: boolean }` (both default `true`) | `{ valid, detected_kind?, issues?: [{ message, path? }] }` |
+| `fill` | `artifact` (form or checklist object), `data` | `{ accepted, complete, artifact_kind, data?, errors?: [{ field, message }] }` |
 
-`accepted` is `true` when every supplied value is valid. `complete` is `true` when every required value is present. The `data` that `fill` returns is the flat field map, not a payload: keep your own `data` object and pass it to `render`.
+`accepted` is `true` when every supplied value is valid. `complete` is `true` when every required value is present. An invalid artifact (`valid: false`) and rejected values (`accepted: false`) are normal results. `fill` on an artifact that is not a form or checklist returns a tool error (`isError: true`). The `data` that `fill` returns is the flat field map, not a payload: keep your own `data` object and pass it to `render`.
 
 `fill` takes only the current `$schema`; migrate an older artifact first ([schemas.md § Loading rules](./schemas.md#loading-rules)).
 
@@ -119,7 +119,9 @@ These two run on an artifact object you pass in. They make no outbound call.
 | `list_artifacts` | `kind?`, `limit?` (1-50, default 20), `offset?` | Artifacts ranked by all-time installs |
 | `list_registries` | `status?` (`verified` default, `pending`, `bad`, `all`), `limit?` (1-50, default 20), `offset?` | Registries with artifact counts and installs |
 | `get_registry` | `registry_id` | The registry and its artifacts |
-| `get_artifact` | `registry_id`, `artifact_name` | `{ artifact, metadata }`. File `instructions` and `agentInstructions` come back inline. Verified registries only. |
+| `get_artifact` | `registry_id`, `artifact_name` | `{ registry_id, artifact_name, artifact, metadata }`. File `instructions` and `agentInstructions` come back inline. Verified registries only. |
+
+Result keys are snake_case (`display_name`, `installs_total`, `artifact_count`). The artifact JSON inside `get_artifact` keeps the artifact's own keys. A lookup that fails (unknown registry or artifact, unverified registry) returns a tool error (`isError: true`).
 
 ## Render
 
@@ -128,9 +130,9 @@ These two run on an artifact object you pass in. They make no outbound call.
 | `registry_id`, `artifact_name` | From a registry tool. The registry must be verified. |
 | `data` | The payload you gave `fill`. |
 | `layer?` | Layer key. Defaults to `defaultLayer`, then the first layer. |
-| `outputMode?` | `"url"` (default): a short download link that expires in 7 days. `"inline"`: the content in the response, base64 for binary output. Use `"inline"` for text or markdown shown in chat. |
+| `output_mode?` | `"url"` (default): a short download link that expires in 7 days. `"inline"`: the content in the response, base64 for binary output. Use `"inline"` for text or markdown shown in chat. |
 
-Returns `{ success, renderId, artifactKind, mimeType, downloadUrl?, expiresAt?, content?, encoding?, errors?, validationIssues?, error? }`.
+Returns `{ success, render_id, artifact_kind, mime_type, download_url?, expires_at?, content?, encoding? }`. When the artifact fails schema validation or the data is rejected, `success` is `false` with `validation_issues` or `errors`. When the render cannot run (unverified registry, not a form, unknown layer), the tool returns an error (`isError: true`).
 
 `render` renders forms from a verified registry, with text, markdown, HTML, PDF and DOCX layers. For an unpublished artifact, render locally with the SDK or CLI ([rendering.md](./rendering.md)). React (`text/tsx`) layers render with the `paradoc-react` skill.
 
@@ -145,11 +147,15 @@ These act on the session's organization through the Paradoc platform API. The ar
 
 A registry coordinate resolves in the call's mode. A test session never falls back to a live artifact. To test with a live published version, add `"source_mode": "live"` to the registry source. The version is read-only, and the call and its records stay in test mode. To change a live artifact from test mode, fork it into a test repo.
 
+OAuth and API-key connections get the same platform tools. Each call needs the permission in the tables below: an API key must hold it, and an OAuth connection must be granted it for the call's mode.
+
 A billed tool fails with an insufficient-balance error when the organization's balance is empty.
 
 `extract`, `prefill`, `seal`, `extract_job_submit` and `create_envelope` take an optional `idempotency_key` (1-255 characters). To retry a call that failed or timed out, send the same key: the API returns the first result and does not bill it again. Without a key, each call is a new operation. A test-mode call and a live-mode call never share a result, even with the same key.
 
 ### Execution
+
+Every execution tool needs `execution:run`. Reading a stored extraction result with `extract_job_get` or `extract_job_list` also needs `execution-content:read`.
 
 | Tool | Arguments | Cost | Does |
 |------|-----------|------|------|
@@ -163,32 +169,36 @@ A billed tool fails with an insufficient-balance error when the organization's b
 
 ### E-signature
 
-| Tool | Arguments | Cost | Does |
-|------|-----------|------|------|
-| `create_envelope` | `artifact`, `data`, `signers: [{ email, name, routing_order? }]` (1-20), `title?`, `message?`, `external_id?`, `idempotency_key?` | Per call | Seals the artifact and sends signing invitations. Returns the envelope id and each signer's signing URL. |
-| `get_envelope` | `envelope_id` | Free | Status and per-signer state. |
-| `list_envelopes` | `status?` (`draft`, `pending`, `in_progress`, `completed`, `declined`, `voided`, `expired`), `limit?` (1-100), `offset?` | Free | Envelopes, newest first. |
-| `download_envelope` | `envelope_id` | Free | Links to the signed document and completion certificate, once completed. |
-| `void_envelope` | `envelope_id`, `reason` (1-500 characters) | Free | Voids an in-progress envelope and notifies signers. |
-| `remind_envelope` | `envelope_id` | Free | Emails every pending signer. |
-| `envelope_audit` | `envelope_id` | Free | Every lifecycle event with actor, timestamp and a tamper-evident hash. |
+| Tool | Arguments | Permission | Cost | Does |
+|------|-----------|------------|------|------|
+| `create_envelope` | `artifact`, `data`, `signers: [{ email, name, client_user_id?, routing_order? }]` (1-20), `title?`, `message?`, `external_id?`, `client_user_id?`, `signer_access_days?` (1-3650), `retention_days?` (30 or more, or `null` to keep forever), `idempotency_key?` | `esign:manage` | Per call | Seals the artifact and sends signing invitations. Returns the envelope id and each signer's signing URL. Omitted `signer_access_days` and `retention_days` take the organization defaults. |
+| `get_envelope` | `envelope_id` | `esign:read` | Free | Status and per-signer state. |
+| `list_envelopes` | `status?` (`draft`, `pending`, `in_progress`, `completed`, `declined`, `voided`, `expired`), `client_user_id?`, `limit?` (1-100), `offset?` | `esign:read` | Free | Envelopes, newest first. |
+| `download_envelope` | `envelope_id` | `esign-content:read` | Free | Links to the signed document and completion certificate, once completed. |
+| `void_envelope` | `envelope_id`, `reason` (1-500 characters) | `esign:manage` | Free | Voids an in-progress envelope and notifies signers. |
+| `remind_envelope` | `envelope_id` | `esign:manage` | Free | Emails every pending signer. |
+| `envelope_audit` | `envelope_id` | `esign-content:read` | Free | Every lifecycle event with actor, timestamp and a tamper-evident hash. |
 
 ### Payments
 
-| Tool | Arguments | Does |
-|------|-----------|------|
-| `connect_get_status` | none | Stripe Connect status. `ready` must be `true` before `create_payment`. Onboarding is done by a person on the Payments page of the Paradoc console. |
-| `create_payment` | Either `amount_cents` + `currency`, or `artifact` + `data` (the amount comes from the party `payment` in the form). Always `success_url`, `cancel_url`. Optional `description`, `external_id`. | Creates a hosted checkout. Returns `checkout_url`. |
-| `get_payment` | `payment_id` | One payment. |
-| `list_payments` | `status?` (`pending`, `succeeded`, `failed`, `partially_refunded`, `refunded`), `limit?` (1-100), `offset?` | Payments, newest first. |
-| `refund_payment` | `payment_id` | Refunds the remaining amount. |
+| Tool | Arguments | Permission | Does |
+|------|-----------|------------|------|
+| `connect_get_status` | none | `payment:read` | Stripe Connect status. `ready` must be `true` before `create_payment`. Onboarding is done by a person on the Payments page of the Paradoc console. |
+| `create_payment` | Either `amount_cents` + `currency`, or `artifact` + `data` (the amount comes from the party `payment` in the form). Always `success_url`, `cancel_url`. Optional `connected_account_id` (defaults to the organization's default account), `description`, `external_id`, `client_user_id`, `payer_client_user_id`. | `payment:charge` | Creates a hosted checkout. Returns `checkout_url`. |
+| `get_payment` | `payment_id` | `payment:read` | One payment. |
+| `list_payments` | `status?` (`pending`, `succeeded`, `failed`, `partially_refunded`, `refunded`), `created_after?`, `created_before?` (ISO 8601), `q?` (description text), `min_amount_cents?`, `max_amount_cents?`, `connected_account_id?`, `client_user_id?`, `limit?` (1-100), `offset?` | `payment:read` | Payments, newest first. |
+| `refund_payment` | `payment_id` | `payment:refund` | Refunds the remaining amount of a `succeeded` or `partially_refunded` payment. A payment already refunded in full is rejected; read its state with `get_payment`. |
+
+A `402` from `create_payment` names its cause: no connected Stripe account (start onboarding), an account that is not payout-enabled (finish onboarding), or, for a billed operation, an empty balance (top up).
 
 ## Limits
 
 | Limit | Value |
 |-------|-------|
-| Rate limit, `mcp.paradoc.dev` | 60 `POST /mcp` requests per 60 seconds per client IP |
+| Rate limit, `mcp.paradoc.dev` | 60 requests to `/mcp` (`POST`, `GET` and `DELETE`) per 60 seconds per client IP |
 | Rate limit, `mcp-dev.paradoc.dev` | 60 per 60 seconds |
 | `extract`, `prefill` document | 10 MB. Larger documents: `extract_job_submit` (about 18.75 MB, 100 pages). |
 
-The session handshake counts against the rate limit. A normal handshake and `tools/list` leave room for an active fill loop within the 60-request window. Request 61 from the same client IP gets `429`; wait for the 60-second window to reset. For larger workloads, use the npm tools ([ai-tools.md](./ai-tools.md)), the SDK ([sdk.md](./sdk.md)) or the CLI ([cli.md](./cli.md)) locally. When a result has no `issues` or `errors` array, read its top-level `error` string.
+The session handshake counts against the rate limit. A `GET` that opens the server-to-client stream counts once, when it opens; an open stream is not cut off. A normal handshake and `tools/list` leave room for an active fill loop within the 60-request window. Request 61 from the same client IP gets `429`; wait for the 60-second window to reset. For larger workloads, use the npm tools ([ai-tools.md](./ai-tools.md)), the SDK ([sdk.md](./sdk.md)) or the CLI ([cli.md](./cli.md)) locally.
+
+Every tool signals a failed call the same way: the result has `isError: true` and its text is the error message. A result without `isError` is the tool's answer, which can still report a validation outcome (`valid: false`, `accepted: false`, `success: false` with `errors` or `validation_issues`).
