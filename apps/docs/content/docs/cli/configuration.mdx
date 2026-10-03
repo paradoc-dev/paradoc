@@ -187,7 +187,7 @@ export PARADOC_NO_UPDATE_CHECK=1
 
 ## Telemetry
 
-The CLI sends three anonymous events: `project.initialized`, `artifact.installed`, and `registry.added`. Events include the operating system, CPU architecture, Node.js version, and whether the CLI is running in CI. Public-registry installs also include the registry origin, artifact name, and artifact version. No personal information or artifact content is collected.
+The CLI sends anonymous events to one endpoint, `https://telemetry.paradoc.dev/v1/events/anonymous`. The events are `project.initialized`, `artifact.installed`, `registry.added`, and `directory.installed`. Events include the operating system, CPU architecture, Node.js version, and whether the CLI is running in CI. Public-registry installs also include the registry origin, artifact name, artifact version, and artifact kind. For a public-registry install the CLI sends `directory.installed` with those same fields, so directories can count installs. No personal information or artifact content is collected.
 
 Telemetry can be disabled in three ways:
 
@@ -214,7 +214,8 @@ paradoc --no-telemetry add @paradoc/w9
 | `PARADOC_TELEMETRY_DISABLED=1` | Disable telemetry |
 | `DO_NOT_TRACK=1` | Disable telemetry (cross-tool standard) |
 | `PARADOC_TELEMETRY_DEBUG=1` | Log telemetry events to console |
+| `PARADOC_TELEMETRY_URL` | Send events to another origin, such as `https://telemetry-dev.paradoc.dev` for development |
 
 When multiple settings conflict, the CLI checks in this order: CLI flag, environment variables, global config. Any opt-out at any level disables telemetry entirely.
 
-Public registry install and add events are also sent to `https://tasks.paradoc.dev/v1/directory-events` to maintain directory install counts. The same CLI telemetry opt-outs disable these events. A registry can disable its own install telemetry with `enableTelemetry: false`, or only directory events with `enableDirectory: false` in `registry.json`.
+A registry can disable its own install telemetry with `enableTelemetry: false`, or only the `directory.installed` event with `enableDirectory: false` in `registry.json`.

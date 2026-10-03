@@ -4,6 +4,12 @@ All notable changes to Paradoc. Packages are versioned in lockstep.
 
 ## [Unreleased]
 
+### Other changes
+
+#### CLI
+
+- The CLI sends all telemetry to `telemetry.paradoc.dev`. Public-registry installs send a `directory.installed` event in the same batch, and nothing goes to `tasks.paradoc.dev`. `PARADOC_TELEMETRY_URL` points the CLI at another telemetry origin, such as `https://telemetry-dev.paradoc.dev`.
+
 ## [0.6.1] - 2026-09-28
 
 Paradoc 0.6.1 tightens prerelease schema distribution and makes the documentation easier for people and agents to discover. It also publishes a reusable service-layer boundary for projects using the Paradoc ESLint configuration.

@@ -8,6 +8,11 @@
  *   - Set `PARADOC_TELEMETRY_DISABLED=1` or `DO_NOT_TRACK=1` env vars
  *   - Pass `--no-telemetry` flag to any command
  *
+ * Destination:
+ *   - Every event goes to one host, `https://telemetry.paradoc.dev`. Set
+ *     `PARADOC_TELEMETRY_URL` to send to another origin, such as
+ *     `https://telemetry-dev.paradoc.dev` for development.
+ *
  * Debug:
  *   - Set `PARADOC_TELEMETRY_DEBUG=1` to log events to console
  */
@@ -19,9 +24,32 @@ import type { GlobalConfig } from '@paradoc/schemas'
 import { configManager } from './config.js'
 import { VERSION } from '../constants.js'
 
-const TELEMETRY_ENDPOINT = 'https://telemetry.paradoc.dev/v1/events/anonymous'
-const DIRECTORY_EVENTS_ENDPOINT = 'https://tasks.paradoc.dev/v1/directory-events'
+const DEFAULT_TELEMETRY_ORIGIN = 'https://telemetry.paradoc.dev'
+const ANONYMOUS_EVENTS_PATH = '/v1/events/anonymous'
 const SEND_TIMEOUT_MS = 5_000
+
+/** Event name for an install from a public registry, counted by directories. */
+const DIRECTORY_INSTALL_EVENT = 'directory.installed'
+
+/**
+ * The anonymous events URL. `PARADOC_TELEMETRY_URL` overrides the origin; a
+ * value that is not an http(s) origin is ignored so a bad override cannot
+ * redirect events to an unintended scheme.
+ */
+export function telemetryEndpoint(env: NodeJS.ProcessEnv = process.env): string {
+  const override = env.PARADOC_TELEMETRY_URL
+  if (override) {
+    try {
+      const url = new URL(override)
+      if (url.protocol === 'https:' || url.protocol === 'http:') {
+        return `${url.origin}${ANONYMOUS_EVENTS_PATH}`
+      }
+    } catch {
+      // Fall through to the default origin.
+    }
+  }
+  return `${DEFAULT_TELEMETRY_ORIGIN}${ANONYMOUS_EVENTS_PATH}`
+}
 
 // Session ID — unique per process invocation
 const sessionId = randomUUID()
@@ -153,7 +181,7 @@ async function buildEvent(
  * Uses AbortController for a hard timeout.
  */
 async function sendEvents(events: TelemetryEvent[]): Promise<void> {
-  const endpoint = TELEMETRY_ENDPOINT
+  const endpoint = telemetryEndpoint()
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), SEND_TIMEOUT_MS)
   timeout.unref()
@@ -189,18 +217,6 @@ async function sendEvents(events: TelemetryEvent[]): Promise<void> {
   } finally {
     clearTimeout(timeout)
   }
-}
-
-async function sendDirectoryEvent(event: Record<string, string>): Promise<void> {
-  const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), SEND_TIMEOUT_MS)
-  timeout.unref()
-  try {
-    await fetch(DIRECTORY_EVENTS_ENDPOINT, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(event), signal: controller.signal,
-    })
-  } finally { clearTimeout(timeout) }
 }
 
 /**
@@ -342,13 +358,15 @@ export async function trackInstall(
       isUpdate,
     },
   })
-  sendEvents([event]).catch(() => {})
+  const events = [event]
   if (opts?.enableDirectory !== false) {
-    sendDirectoryEvent({
-      type: 'artifact.installed', registryUrl: new URL(registryUrl).origin,
-      artifactName: artifact, artifactKind: kind, version,
-    }).catch(() => {})
+    events.push(
+      await buildEvent(DIRECTORY_INSTALL_EVENT, {
+        properties: { registryUrl: new URL(registryUrl).origin, artifact, version, kind },
+      })
+    )
   }
+  sendEvents(events).catch(() => {})
 }
 
 /**
@@ -378,5 +396,4 @@ export async function trackRegistryAdd(
     properties: { registryType, registryUrl },
   })
   sendEvents([event]).catch(() => {})
-  sendDirectoryEvent({ type: 'registry.added', registryUrl }).catch(() => {})
 }
