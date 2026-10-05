@@ -151,7 +151,7 @@ OAuth and API-key connections get the same platform tools. Each call needs the p
 
 A billed tool fails with an insufficient-balance error when the organization's balance is empty.
 
-`extract`, `prefill`, `seal`, `extract_job_submit` and `create_envelope` take an optional `idempotency_key` (1-255 characters). To retry a call that failed or timed out, send the same key: the API returns the first result and does not bill it again. Without a key, each call is a new operation. A test-mode call and a live-mode call never share a result, even with the same key.
+`extract`, `prefill`, `seal`, `extract_job_submit` and `create_envelope` take an optional `idempotency_key` (1-255 characters). To retry a call that failed or timed out, send the same key with the same arguments: the API returns the first result and does not bill it again. A key reused with different arguments is refused with a 409 conflict (`idempotency_payload_mismatch`), so use a new key for a new call. Execution tools (`extract`, `prefill`, `seal`) remember a key for 24 hours; `extract_job_submit` and `create_envelope` remember it for the life of the job or envelope. Without a key, each call is a new operation. A test-mode call and a live-mode call never share a result, even with the same key.
 
 ### Execution
 
