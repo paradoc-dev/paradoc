@@ -219,13 +219,18 @@ describe('Bundles Guide', () => {
         .name('mixed-bundle')
         .inline('embedded', someForm)
         .path('local', './forms/other.yaml')
-        .registry('shared', '@acme/disclosure')
+        .registry('shared', '@acme/forms/disclosure/2024-03@1.0.0')
         .build()
 
       expect(bundle.contents).toHaveLength(3)
       expect(bundle.contents[0].type).toBe('inline')
       expect(bundle.contents[1].type).toBe('path')
-      expect(bundle.contents[2].type).toBe('registry')
+      expect(bundle.contents[2]).toMatchObject({
+        type: 'registry',
+        slug: '@acme/forms/disclosure',
+        edition: '2024-03',
+        version: '1.0.0',
+      })
     })
   })
 })

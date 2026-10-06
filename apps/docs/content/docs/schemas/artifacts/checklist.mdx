@@ -44,7 +44,7 @@ Examples include a loan closing checklist, document review checklist, or onboard
   {
     name: 'code',
     type: 'string',
-    description: 'Internal code or reference number',
+    description: 'The form number as printed by its issuer (e.g. W-9, ACORD 25), or a self-issued form\'s own number',
     isOptional: true,
   },
   {
@@ -54,10 +54,45 @@ Examples include a loan closing checklist, document review checklist, or onboard
     isOptional: true,
   },
   {
-    name: 'releaseDate',
+    name: 'issuer',
     type: 'string',
-    description: 'ISO date string indicating when the artifact was released',
+    description: 'Organization that issues the form (e.g. U.S. Internal Revenue Service)',
     isOptional: true,
+  },
+  {
+    name: 'edition',
+    type: 'Edition',
+    description: 'The issuer\'s edition this artifact encodes, for artifacts the issuer reissues. Every edition of one artifact shares the same name and has its own version line',
+    isOptional: true,
+    properties: [
+      {
+        type: 'Edition',
+        parameters: [
+          {
+            name: 'key',
+            type: 'string',
+            description: 'Stable edition id: lowercase letters and digits with single hyphens (e.g. 2024-03, 3b), at most 64 characters, and not current, latest, editions, tags or diff. The edition segment of a coordinate such as @org/repo/w-9/2024-03. Never changes once published',
+          },
+          {
+            name: 'label',
+            type: 'string',
+            description: 'The issuer\'s edition text exactly as printed (e.g. Rev. March 2024). Display only',
+          },
+          {
+            name: 'date',
+            type: 'string',
+            description: 'When the issuer released the edition, at the issuer\'s precision: YYYY, YYYY-MM, or YYYY-MM-DD',
+            isOptional: true,
+          },
+          {
+            name: 'effectiveFrom',
+            type: 'string',
+            description: 'ISO date the edition takes effect, only when printed on the form',
+            isOptional: true,
+          },
+        ],
+      },
+    ],
   },
   {
     name: 'metadata',

@@ -74,7 +74,8 @@ const lease = p.form()
 | Constraint | Detail |
 |------------|--------|
 | Plain values in the object pattern | A field builder inside `p.form({...})` fails with `Invalid discriminator value`. Call `.build()` on it first, or use the builder pattern. |
-| Builder methods | `name`, `version`, `title`, `description`, `code`, `language`, `releaseDate`, `metadata`, `instructions`, `agentInstructions`, `defs`/`def`, `field`/`fields`, `layers`/`layer`/`inlineLayer`/`fileLayer`, `defaultLayer`, `annex`/`annexes`, `allowAdditionalAnnexes`, `party`/`parties`, `build` |
+| Builder methods | `name`, `version`, `title`, `description`, `code`, `language`, `issuer`, `edition({ key, label, date?, effectiveFrom? })`, `metadata`, `instructions`, `agentInstructions`, `defs`/`def`, `field`/`fields`, `layers`/`layer`/`inlineLayer`/`fileLayer`, `defaultLayer`, `annex`/`annexes`, `allowAdditionalAnnexes`, `party`/`parties`, `build` |
+| Bundle registry items | `.registry(key, coordinate, include?)` takes `@org/repo/name[/edition][@version]` and stores `slug`, `edition` and `version` separately. A two-segment value such as `@acme/disclosure` throws. |
 | Other kinds | `p.document`, `p.checklist` and `p.bundle` take the same two patterns |
 | File layers | Pass the resolver at construction: `p.form(def, { resolver })`. `render()` takes no resolver. |
 

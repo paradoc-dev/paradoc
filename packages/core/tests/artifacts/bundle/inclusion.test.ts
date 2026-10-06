@@ -24,7 +24,7 @@ function conditionalBundle(enabled: boolean) {
 		.title('Uniform')
 		.inline('inline', artifact, condition)
 		.path('path', './optional.yaml', condition)
-		.registry('registry', '@example/optional', condition)
+		.registry('registry', '@example/forms/optional', condition)
 		.inline('source', source)
 		.build()
 

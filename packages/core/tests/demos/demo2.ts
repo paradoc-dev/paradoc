@@ -6,7 +6,7 @@ const myForm = p.form({
   name: 'pet-addendum',
   title: 'Pet Addendum',
   code: 'PET-123',
-  releaseDate: '2025-01-01',
+  edition: { key: '2025-01', label: 'Rev. January 2025', date: '2025-01' },
   description: 'This is a simple pet addendum.',
   fields: {
     name: {

@@ -25,7 +25,7 @@ function run(args: string[], cwd: string, input?: string) {
   return { stdout: r.stdout, stderr: r.stderr, exitCode: r.status ?? -1 }
 }
 
-const SCHEMA = 'https://schema.paradoc.dev/2026-09-24.json'
+const SCHEMA = 'https://schema.paradoc.dev/2026-10-02.json'
 
 const artifact = { $schema: SCHEMA, kind: 'form', name: 'nec', title: 'NEC', version: '1.0.0', fields: {} }
 

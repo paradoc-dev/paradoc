@@ -5,18 +5,21 @@ import { p } from "@paradoc/core";
 import { createMemoryResolver } from "@paradoc/resolvers/memory";
 
 const schema = {
-  "$schema": "https://schema.paradoc.dev/2026-09-24.json",
+  "$schema": "https://schema.paradoc.dev/2026-10-02.json",
   "kind": "form",
   "name": "w-9",
   "version": "1.0.0",
   "title": "Request for Taxpayer Identification Number and Certification",
   "description": "A U.S. person gives this form to a requester to certify their legal name, federal tax classification, and Taxpayer Identification Number (SSN or EIN). The completed form is retained by the requester for information-return reporting and is not sent to the IRS.",
   "code": "W-9",
-  "releaseDate": "2024-03-01",
+  "issuer": "U.S. Internal Revenue Service",
+  "edition": {
+    "key": "2024-03",
+    "label": "Rev. March 2024",
+    "date": "2024-03"
+  },
   "metadata": {
-    "issuer": "U.S. Internal Revenue Service",
-    "domain": "tax",
-    "sourceUrl": "https://www.irs.gov/pub/irs-pdf/fw9.pdf"
+    "domain": "tax"
   },
   "instructions": {
     "kind": "file",

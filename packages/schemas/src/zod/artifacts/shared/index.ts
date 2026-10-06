@@ -1,4 +1,5 @@
 export { ArtifactSchema } from './base';
+export { ArtifactEditionSchema, EDITION_DATE_PATTERN } from './edition';
 export { ContentRefSchema } from './content-ref';
 export {
 	isPdfMimeType,

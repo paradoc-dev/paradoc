@@ -14,3 +14,5 @@ export { PhoneSchema } from './phone';
 export { SignatureSchema } from './signature';
 export { ARTIFACT_NAME_PATTERN, ARTIFACT_REFERENCE_PATTERN, IDENTIFIER_PATTERN, REGISTRY_NAMESPACE_PATTERN } from './name';
 export { ARTIFACT_VERSION_PATTERN } from './version';
+export { ARTIFACT_ADDRESS_PATTERN, ARTIFACT_COORDINATE_PATTERN, CURRENT_EDITION, EDITION_KEY_MAX_LENGTH, EDITION_KEY_PATTERN, EDITION_KEY_SCHEMA_PATTERN, LATEST_VERSION, RESERVED_EDITION_KEYS, formatArtifactCoordinate, isEditionSelector, isReservedEditionKey, isVersionSelector, parseArtifactCoordinate, type ArtifactCoordinate } from './artifact-coordinate';
+export { ArtifactCoordinateSchema, EditionKeySchema, EditionSelectorSchema, VersionSelectorSchema } from './artifact-selectors';

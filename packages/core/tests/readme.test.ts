@@ -116,7 +116,8 @@ describe("@paradoc/core - README Examples", () => {
         .version("1.0.0")
         .title("Lead Paint Disclosure")
         .code("EPA-747-K-12-001")
-        .releaseDate("2025-12-01")
+        .issuer("U.S. Environmental Protection Agency")
+        .edition({ key: "2025-12", label: "Rev. December 2025", date: "2025-12" })
         .metadata({ agency: "EPA/HUD", cfr: "40 CFR 745" })
         .layers({
           pdf: p
@@ -132,7 +133,7 @@ describe("@paradoc/core - README Examples", () => {
       expect(leadPaintDisclosure.name).toBe("lead-paint-disclosure");
       expect(leadPaintDisclosure.kind).toBe("document");
       expect(leadPaintDisclosure.code).toBe("EPA-747-K-12-001");
-      expect(leadPaintDisclosure.releaseDate).toBe("2025-12-01");
+      expect(leadPaintDisclosure.edition?.key).toBe("2025-12");
       expect(leadPaintDisclosure.metadata).toEqual({
         agency: "EPA/HUD",
         cfr: "40 CFR 745",

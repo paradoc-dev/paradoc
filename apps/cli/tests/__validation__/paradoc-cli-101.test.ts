@@ -6,7 +6,7 @@ import { runCli } from '../setup/spawn-cli.js'
 
 const root = mkdtempSync(path.join(tmpdir(), 'paradoc-cli-101-'))
 const file = path.join(root, 'bad.json')
-writeFileSync(file, JSON.stringify({ $schema: 'https://schema.paradoc.dev/2026-09-24.json', kind: 'form', name: 'bad', title: 'Bad', version: '1.0.0', fields: { a: { type: 'nope', label: 'A' } } }))
+writeFileSync(file, JSON.stringify({ $schema: 'https://schema.paradoc.dev/2026-10-02.json', kind: 'form', name: 'bad', title: 'Bad', version: '1.0.0', fields: { a: { type: 'nope', label: 'A' } } }))
 afterAll(() => rmSync(root, { recursive: true, force: true }))
 
 describe('paradoc-cli-101: scope flags require a schema-valid artifact', () => {

@@ -107,19 +107,27 @@ describe('FormInstance', () => {
       expect(instance.language).toBeUndefined()
     })
 
-    test('returns releaseDate when set', () => {
+    test('returns issuer and edition when set', () => {
+      const edition = { key: '2024-01', label: 'Rev. January 2024', date: '2024-01', effectiveFrom: '2024-01-15' }
       const instance = form()
         .name('dated-form')
         .version('1.0.0')
         .title('Dated Form')
-        .releaseDate('2024-01-15')
+        .issuer('Forms Office')
+        .edition(edition)
         .build()
-      expect(instance.releaseDate).toBe('2024-01-15')
+      expect(instance.issuer).toBe('Forms Office')
+      expect(instance.edition).toEqual(edition)
     })
 
-    test('returns undefined releaseDate when not set', () => {
+    test('returns undefined issuer and edition when not set', () => {
       const instance = createMinimalForm()
-      expect(instance.releaseDate).toBeUndefined()
+      expect(instance.issuer).toBeUndefined()
+      expect(instance.edition).toBeUndefined()
+    })
+
+    test('rejects an edition without a label', () => {
+      expect(() => form().name('dated-form').edition({ key: '2024-01' } as never).build()).toThrow()
     })
 
     test('returns metadata when set', () => {

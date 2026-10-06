@@ -136,6 +136,7 @@ export {
   VENDOR_PACKET_ANNEX_PATH,
   VENDOR_PACKET_KEYS,
   VENDOR_PACKET_W9_SLUG,
+  VENDOR_PACKET_W9_EDITION,
 } from "./vendor-packet";
 export {
   VendorPacketDocument,

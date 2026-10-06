@@ -59,7 +59,8 @@ title: Test Bundle
 contents:
   - type: registry
     key: main-form
-    slug: "@test/test-form@^1.0.0"
+    slug: "@test/forms/test-form"
+    version: "1.0.0"
 `
 
   const checklistYAML = `

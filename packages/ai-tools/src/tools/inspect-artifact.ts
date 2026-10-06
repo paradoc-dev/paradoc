@@ -52,6 +52,8 @@ function inspectSections(artifact: Record<string, unknown>, requested: SectionNa
 				title: artifact.title,
 				description: artifact.description,
 				code: artifact.code,
+				issuer: artifact.issuer,
+				edition: artifact.edition,
 				language: artifact.language,
 			}
 			continue

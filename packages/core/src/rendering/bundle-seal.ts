@@ -35,6 +35,7 @@
  */
 
 import { flattenPdf, inspectPdf, mergePdfs } from '@paradoc/render/pdf'
+import { parseArtifactCoordinate } from '@paradoc/schemas'
 import type {
   BinaryContent,
   Bundle,
@@ -219,7 +220,7 @@ async function digestOf(bytes: BinaryContent): Promise<string> {
 type DraftEntry = DraftForm<Form> | DraftChecklist<Checklist> | DraftDocument<Document>
 
 /** The artifact a draft entry carries, whatever kind it is. */
-function entryArtifact(entry: DraftEntry): { name?: string; version?: string } | undefined {
+function entryArtifact(entry: DraftEntry): { name?: string; edition?: { key: string }; version?: string } | undefined {
   if ('form' in entry) return (entry as DraftForm<Form>).form
   if ('checklist' in entry) return (entry as DraftChecklist<Checklist>).checklist
   if ('document' in entry) return (entry as DraftDocument<Document>).document
@@ -244,17 +245,18 @@ function sealableForm(entry: DraftEntry): DraftForm<Form> | undefined {
 /**
  * The artifact a bundle item names, when the item names one this can compare.
  *
- * A registry item names its artifact by slug. The convention the registry uses
- * is that the slug's last segment is the artifact's name, optionally followed
- * by `@version`, so `@paradoc/essentials/tax/w-9` names `w-9`. A path item
- * names a file rather than an identity, so there is nothing to compare.
+ * A registry item names its artifact by address, edition and version. The
+ * address's last segment is the artifact's name, so `@paradoc/irs/w-9` names
+ * `w-9`. A path item names a file rather than an identity, so there is nothing
+ * to compare.
  */
-function declaredArtifact(item: BundleContentItem): { name?: string; version?: string } | undefined {
-  if (item.type === 'inline') return item.artifact
+function declaredArtifact(item: BundleContentItem): { name?: string; edition?: string; version?: string } | undefined {
+  if (item.type === 'inline') {
+    const { name, edition, version } = item.artifact
+    return { name, edition: edition?.key, version }
+  }
   if (item.type !== 'registry') return undefined
-  const last = item.slug.split('/').pop() ?? item.slug
-  const at = last.lastIndexOf('@')
-  return at > 0 ? { name: last.slice(0, at), version: last.slice(at + 1) } : { name: last }
+  return { name: parseArtifactCoordinate(item.slug)?.name, edition: item.edition, version: item.version }
 }
 
 /** The file signatures the packet can recognise, by the type they mean. */
@@ -376,6 +378,10 @@ export async function sealBundle(bundle: Bundle, options: BundleSealOptions): Pr
     if (supplied?.name !== wanted.name) {
       problems.push(
         `content for "${key}" is the artifact "${supplied?.name ?? 'unnamed'}" but the bundle declares "${wanted.name}"`,
+      )
+    } else if (wanted.edition !== undefined && supplied.edition?.key !== wanted.edition) {
+      problems.push(
+        `content for "${key}" is "${wanted.name}" edition ${supplied.edition?.key ?? 'unstated'} but the bundle declares edition ${wanted.edition}`,
       )
     } else if (wanted.version !== undefined && supplied.version !== wanted.version) {
       problems.push(

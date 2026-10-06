@@ -5,14 +5,13 @@ import { p } from "@paradoc/core";
 import { createMemoryResolver } from "@paradoc/resolvers/memory";
 
 const schema = {
-  "$schema": "https://schema.paradoc.dev/2026-09-24.json",
+  "$schema": "https://schema.paradoc.dev/2026-10-02.json",
   "kind": "form",
   "name": "ach-bank-account-info",
   "version": "1.0.0",
   "title": "ACH Bank Account Information",
   "description": "Standalone vendor / payee bank-account-information collection form for ACH credit destination setup. Captures account-holder identity (individual or organization), bank routing/account/type, and (for organizations) W-9-adjacent entity classification. Pairs with a separate authorization document (vendor agreement, W-9, MSA); the form itself is data-collection only and does not carry an authorization clause.",
   "code": "ACH-BANK-INFO",
-  "releaseDate": "2026-05-02",
   "metadata": {
     "domain": "banking"
   },

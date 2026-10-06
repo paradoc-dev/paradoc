@@ -20,7 +20,7 @@ const USER: Actor = { kind: "user" };
 
 function artifact(extra: Record<string, unknown>): Record<string, unknown> {
 	return {
-		$schema: "https://schema.paradoc.dev/2026-09-24.json",
+		$schema: "https://schema.paradoc.dev/2026-10-02.json",
 		kind: "form",
 		name: "session-runtime",
 		version: "1.0.0",

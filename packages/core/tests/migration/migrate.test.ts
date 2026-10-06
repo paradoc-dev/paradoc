@@ -60,7 +60,7 @@ describe('2026-08-10 to 2026-09-22', () => {
 		if (result.status !== 'migrated') throw new Error('expected a migration')
 		const artifact = result.artifact as Json
 
-		expect(result.steps.map((step) => step.to)).toEqual(['2026-09-22', '2026-09-23', '2026-09-24'])
+		expect(result.steps.map((step) => step.to)).toEqual(['2026-09-22', '2026-09-23', '2026-09-24', '2026-10-02'])
 		expect(artifact.$schema).toBe(PARADOC_SCHEMA_URL)
 		expect(artifact.layers.markdown.signatures.tenantSignature.placement).toBe('flow')
 		expect(validate(artifact).issues).toBeUndefined()
@@ -165,7 +165,7 @@ describe('2026-09-22 to 2026-09-23', () => {
 		const result = migrateArtifact(source)
 		if (result.status !== 'migrated') throw new Error('expected a migration')
 		expect(result).toMatchObject({ from: '2026-09-22', to: SCHEMA_VERSION })
-		expect(result.steps.map((step) => step.to)).toEqual(['2026-09-23', '2026-09-24'])
+		expect(result.steps.map((step) => step.to)).toEqual(['2026-09-23', '2026-09-24', '2026-10-02'])
 		expect(result.artifact).toEqual({ ...source, $schema: PARADOC_SCHEMA_URL })
 		expect(validate(result.artifact).issues).toBeUndefined()
 	})
@@ -224,7 +224,7 @@ describe('2026-09-23 to 2026-09-24', () => {
 		})
 		const result = migrateArtifact(source)
 		if (result.status !== 'migrated') throw new Error('expected a migration')
-		expect(result.steps.map((step) => step.to)).toEqual(['2026-09-24'])
+		expect(result.steps.map((step) => step.to)).toEqual(['2026-09-24', '2026-10-02'])
 		const layer = (result.artifact as Json).layers.pdf
 		expect(layer.signatureBlocks).toBeUndefined()
 		expect(layer.anchorBlocks).toBeUndefined()
@@ -307,6 +307,142 @@ describe('2026-09-23 to 2026-09-24', () => {
 	})
 })
 
+describe('2026-09-24 to 2026-10-02', () => {
+	test('removes releaseDate, including from inline bundle artifacts, and the result validates', () => {
+		const source = {
+			$schema: schemaVersionUrl('2026-09-24'),
+			kind: 'bundle',
+			name: 'packet',
+			releaseDate: '2024-03-01',
+			contents: [
+				{ type: 'inline', key: 'notice', artifact: { kind: 'document', name: 'notice', releaseDate: '2024-01-01' } },
+			],
+		}
+		expect(validate(source).issues).toBeDefined()
+		const result = migrateArtifact(source)
+		if (result.status !== 'migrated') throw new Error('expected a migration')
+		expect(result.steps.map((step) => step.to)).toEqual(['2026-10-02'])
+		const artifact = result.artifact as Json
+		expect(artifact.releaseDate).toBeUndefined()
+		expect(artifact.contents[0].artifact.releaseDate).toBeUndefined()
+		expect(artifact.edition).toBeUndefined()
+		expect(validate(artifact).issues).toBeUndefined()
+	})
+
+	test.each([
+		['form', { fields: { tin: { type: 'text', label: 'TIN' } } }],
+		['checklist', { items: [{ id: 'w9', title: 'Collect the W-9' }] }],
+	])('removes releaseDate from a %s, and the result validates', (kind, body) => {
+		const source = {
+			$schema: schemaVersionUrl('2026-09-24'),
+			kind,
+			name: 'w-9',
+			releaseDate: '2024-03-01',
+			...body,
+		}
+		expect(validate(source).issues).toBeDefined()
+		const result = migrateArtifact(source)
+		if (result.status !== 'migrated') throw new Error('expected a migration')
+		expect(result.steps.map((step) => step.to)).toEqual(['2026-10-02'])
+		const artifact = result.artifact as Json
+		expect(artifact.releaseDate).toBeUndefined()
+		expect(artifact.kind).toBe(kind)
+		expect(validate(artifact).issues).toBeUndefined()
+	})
+
+	test('moves a version out of a registry item slug, and leaves a bare slug alone', () => {
+		const source = {
+			$schema: schemaVersionUrl('2026-09-24'),
+			kind: 'bundle',
+			name: 'packet',
+			contents: [
+				{ type: 'registry', key: 'pinned', slug: '@acme/irs/w-9@1.2.0' },
+				{ type: 'registry', key: 'floating', slug: '@acme/irs/w-4' },
+			],
+		}
+		const result = migrateArtifact(source)
+		if (result.status !== 'migrated') throw new Error('expected a migration')
+		const contents = (result.artifact as Json).contents
+		expect(contents[0]).toEqual({ type: 'registry', key: 'pinned', slug: '@acme/irs/w-9', version: '1.2.0' })
+		expect(contents[1]).toEqual({ type: 'registry', key: 'floating', slug: '@acme/irs/w-4' })
+		expect(validate(result.artifact).issues).toBeUndefined()
+	})
+
+	test('drops @latest, which names what no version means', () => {
+		const source = {
+			$schema: schemaVersionUrl('2026-09-24'),
+			kind: 'bundle',
+			name: 'packet',
+			contents: [{ type: 'registry', key: 'floating', slug: '@acme/irs/w-9@latest' }],
+		}
+		const result = migrateArtifact(source)
+		if (result.status !== 'migrated') throw new Error('expected a migration')
+		expect((result.artifact as Json).contents[0]).toEqual({ type: 'registry', key: 'floating', slug: '@acme/irs/w-9' })
+		expect(validate(result.artifact).issues).toBeUndefined()
+	})
+
+	test('refuses a four-segment slug, which a 2026-09-24 slug never meant as an edition', () => {
+		const source = {
+			$schema: schemaVersionUrl('2026-09-24'),
+			kind: 'bundle',
+			name: 'packet',
+			contents: [{ type: 'registry', key: 'odd', slug: '@acme/irs/w-9/extra@1.0.0' }],
+		}
+		const error = migrationError(() => migrateArtifact(source))
+		expect(error.code).toBe('unconvertible-value')
+	})
+
+	test('moves a version out of a registry item slug inside a nested bundle', () => {
+		const source = {
+			$schema: schemaVersionUrl('2026-09-24'),
+			kind: 'bundle',
+			name: 'outer',
+			contents: [
+				{
+					type: 'inline',
+					key: 'inner',
+					artifact: {
+						kind: 'bundle',
+						name: 'inner',
+						contents: [{ type: 'registry', key: 'w9', slug: '@acme/irs/w-9@1.2.0' }],
+					},
+				},
+			],
+		}
+		const result = migrateArtifact(source)
+		if (result.status !== 'migrated') throw new Error('expected a migration')
+		expect((result.artifact as Json).contents[0].artifact.contents[0]).toEqual({
+			type: 'registry',
+			key: 'w9',
+			slug: '@acme/irs/w-9',
+			version: '1.2.0',
+		})
+		expect(validate(result.artifact).issues).toBeUndefined()
+	})
+
+	test('refuses a registry item whose slug is not an artifact address', () => {
+		const source = {
+			$schema: schemaVersionUrl('2026-09-24'),
+			kind: 'bundle',
+			name: 'packet',
+			contents: [{ type: 'registry', key: 'odd', slug: '@acme/w-9@1.0.0' }],
+		}
+		const error = migrationError(() => migrateArtifact(source))
+		expect(error.code).toBe('unconvertible-value')
+	})
+
+	test('refuses a registry item whose slug and version disagree', () => {
+		const source = {
+			$schema: schemaVersionUrl('2026-09-24'),
+			kind: 'bundle',
+			name: 'packet',
+			contents: [{ type: 'registry', key: 'pinned', slug: '@acme/irs/w-9@1.2.0', version: '1.3.0' }],
+		}
+		const error = migrationError(() => migrateArtifact(source))
+		expect(error.code).toBe('unconvertible-value')
+	})
+})
+
 describe('reading the source version', () => {
 	test('a current artifact is left as it is', () => {
 		expect(migrateArtifact(current)).toEqual({ status: 'current', version: SCHEMA_VERSION, artifact: current })
@@ -384,6 +520,7 @@ describe('a step', () => {
 			'Moves a legacy heading into title.',
 			'Allows bindings and bindingsFrom only on PDF file layers; names any other layer that declares them.',
 			'Moves layer signatureBlocks and anchorBlocks into signatures.',
+			"Removes releaseDate and moves a registry bundle item's @version out of its slug.",
 		])
 		expect(result.artifact).toEqual({ $schema: PARADOC_SCHEMA_URL, kind: 'document', name: 'notice', title: 'Notice' })
 		expect(validate(result.artifact).issues).toBeUndefined()

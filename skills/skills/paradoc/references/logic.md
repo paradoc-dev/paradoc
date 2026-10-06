@@ -316,7 +316,7 @@ Form `fill()` and `update()` reject `NaN` and `Infinity` before expressions run.
 import { p } from "@paradoc/sdk";
 
 const form = p.form({
-  $schema: "https://schema.paradoc.dev/2026-09-24.json",
+  $schema: "https://schema.paradoc.dev/2026-10-02.json",
   name: "age-check",
   kind: "form",
   fields: { birthDate: { type: "date" } },

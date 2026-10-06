@@ -55,8 +55,12 @@ export interface RegistryBundleItem {
   type: "registry";
   /** Unique key for this item within the bundle. */
   key: string;
-  /** Registry slug identifying the artifact. */
+  /** The artifact's registry address without edition or version, such as `@org/repo/w-9`. */
   slug: string;
+  /** Edition key to use. When omitted, the registry's current edition is used. */
+  edition?: string;
+  /** Exact version to use. When omitted, the latest version of the edition is used. */
+  version?: string;
   /** Conditional expression for including this item. */
   include?: CondExpr;
 }

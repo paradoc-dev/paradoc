@@ -53,7 +53,7 @@ export const arabicLetterTokens: DocumentTokensInput = {
 
 /** The letter form, exactly as authored. */
 export const arabicLetterSpec = {
-  $schema: "https://schema.paradoc.dev/2026-09-24.json",
+  $schema: "https://schema.paradoc.dev/2026-10-02.json",
   kind: "form",
   name: "arabic-order-confirmation",
   version: "1.0.0",

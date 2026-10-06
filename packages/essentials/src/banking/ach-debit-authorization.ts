@@ -5,14 +5,13 @@ import { p } from "@paradoc/core";
 import { createMemoryResolver } from "@paradoc/resolvers/memory";
 
 const schema = {
-  "$schema": "https://schema.paradoc.dev/2026-09-24.json",
+  "$schema": "https://schema.paradoc.dev/2026-10-02.json",
   "kind": "form",
   "name": "ach-debit-authorization",
   "version": "1.0.0",
   "title": "ACH Debit Authorization",
   "description": "Authorization by which a payer (consumer or business) authorizes a named originator to initiate ACH debit entries against a deposit account at a named financial institution. Supports one-time and recurring debits, fixed or variable amounts, and is governed by NACHA Operating Rules and (for consumers) Regulation E.",
   "code": "ACH-DEBIT-AUTH",
-  "releaseDate": "2026-05-01",
   "metadata": {
     "domain": "banking"
   },

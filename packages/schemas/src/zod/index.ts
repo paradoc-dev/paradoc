@@ -51,6 +51,7 @@ export type { PatternProblem } from './artifacts/form/pattern';
 
 // Shared
 export { ArtifactSchema } from './artifacts/shared/base';
+export { ArtifactEditionSchema, EDITION_DATE_PATTERN } from './artifacts/shared/edition';
 export { ContentRefSchema } from './artifacts/shared/content-ref';
 export { LayerSchema, SignatureSlotSchema, SignatureSlotTypeSchema } from './artifacts/shared/layer';
 export {
@@ -92,6 +93,24 @@ export {
 	ARTIFACT_REFERENCE_PATTERN,
 	ARTIFACT_VERSION_PATTERN,
 	REGISTRY_NAMESPACE_PATTERN,
+	ARTIFACT_ADDRESS_PATTERN,
+	ARTIFACT_COORDINATE_PATTERN,
+	EDITION_KEY_PATTERN,
+	CURRENT_EDITION,
+	EDITION_KEY_MAX_LENGTH,
+	EDITION_KEY_SCHEMA_PATTERN,
+	LATEST_VERSION,
+	RESERVED_EDITION_KEYS,
+	isReservedEditionKey,
+	isEditionSelector,
+	isVersionSelector,
+	ArtifactCoordinateSchema,
+	EditionKeySchema,
+	EditionSelectorSchema,
+	VersionSelectorSchema,
+	formatArtifactCoordinate,
+	parseArtifactCoordinate,
+	type ArtifactCoordinate,
 } from './primitives';
 
 // Expressions

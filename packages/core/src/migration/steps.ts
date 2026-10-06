@@ -1,4 +1,4 @@
-import { ISO_8601_DURATION_REGEX, isPdfMimeType, isReactLayerMimeType, type SchemaVersion } from '@paradoc/schemas'
+import { ISO_8601_DURATION_REGEX, isPdfMimeType, isReactLayerMimeType, parseArtifactCoordinate, type SchemaVersion } from '@paradoc/schemas'
 import { UnconvertibleValueError } from './errors'
 
 /** A parsed artifact as a plain JSON object. */
@@ -257,6 +257,56 @@ const signatureBlocksToSlots: MigrationStep = {
 }
 
 /**
+ * 2026-09-24 to 2026-10-02.
+ *
+ * - `releaseDate` is removed from the artifact and from every inline bundle
+ *   artifact. It recorded when the publisher released the artifact, which the
+ *   registry records on each published version; the issuer's edition date
+ *   now lives in the optional `edition` object, which the step cannot infer.
+ * - A registry bundle item's `slug` no longer carries a version: a trailing
+ *   `@version` moves into the item's `version`.
+ */
+const releaseDateRemovedAndRegistryItemsSplit: MigrationStep = {
+	from: '2026-09-24',
+	to: '2026-10-02',
+	summary: 'Removes releaseDate and moves a registry bundle item\'s @version out of its slug.',
+	apply(artifact) {
+		eachArtifact(artifact, [], (current, path) => {
+			delete current.releaseDate
+			const contents = current.contents
+			if (current.kind !== 'bundle' || !Array.isArray(contents)) return
+			contents.forEach((item, index) => {
+				if (!isObject(item) || item.type !== 'registry' || typeof item.slug !== 'string') return
+				const itemPath = [...path, 'contents', index]
+				const at = item.slug.lastIndexOf('@')
+				if (at <= 0) return
+				const parts = parseArtifactCoordinate(item.slug)
+				// A 2026-09-24 slug never named an edition, so a fourth segment is
+				// not one: refuse it rather than guess.
+				if (!parts || parts.edition !== undefined) {
+					throw new UnconvertibleValueError(
+						itemPath,
+						item,
+						'the slug is not an artifact address @org/repo/name with an optional @version; correct it',
+					)
+				}
+				// `@latest` named the latest version, which is what no version means.
+				if (parts.version !== undefined && item.version !== undefined && item.version !== parts.version) {
+					throw new UnconvertibleValueError(
+						itemPath,
+						item,
+						`the slug names version ${parts.version} but the item's version is ${String(item.version)}; keep one`,
+					)
+				}
+				item.slug = `@${parts.org}/${parts.repo}/${parts.name}`
+				if (parts.version !== undefined) item.version = parts.version
+			})
+		})
+		return artifact
+	},
+}
+
+/**
  * Every migration step, in version order. Each step leads from one published
  * version to the next, so a chain exists from every version to the current one.
  *
@@ -280,4 +330,5 @@ export const MIGRATION_STEPS: readonly MigrationStep[] = [
 	flowPlacementAndStrictDefinitions,
 	bindingsOnlyOnPdfLayers,
 	signatureBlocksToSlots,
+	releaseDateRemovedAndRegistryItemsSplit,
 ]

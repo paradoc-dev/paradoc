@@ -23,7 +23,7 @@ Paradoc is a documents-as-code framework. An **artifact** is a typed JSON/YAML f
 
 ## Global rules
 
-- **Schema version.** Every artifact sets `$schema` to `https://schema.paradoc.dev/2026-09-24.json`. Migrate an older file with `npx paradoc-cli migrate <file>`.
+- **Schema version.** Every artifact sets `$schema` to `https://schema.paradoc.dev/2026-10-02.json`. Migrate an older file with `npx paradoc-cli migrate <file>`.
 - **Validate** files after every change with `npx paradoc-cli validate <files...>`. Run the CLI as `npx paradoc-cli`; the npm package `paradoc` is unrelated.
 - **Identifiers.** Artifact names match `^[A-Za-z0-9]([A-Za-z0-9]|-[A-Za-z0-9])*$`. Field, party, def and rule ids match `^[a-z][a-zA-Z0-9_]*$`. Details per key: [schemas.md § Identifier patterns](./references/schemas.md#identifier-patterns).
 - **Field types.** Use the most specific type: `money`, `date`, `email`, `phone`, `address` and so on, not `text`. See [fields.md § Type selection table](./references/fields.md#type-selection-table).

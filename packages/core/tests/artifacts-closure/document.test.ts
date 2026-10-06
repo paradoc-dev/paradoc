@@ -469,7 +469,7 @@ describe('closure-based Document', () => {
 				.title('Chained Document')
 				.description('Built with chaining')
 				.code('CHN-001')
-				.releaseDate('2024-01-01')
+				.issuer('Chain Agency').edition({ key: '2024-01', label: 'Rev. January 2024', date: '2024-01' })
 				.metadata({ custom: 'value' })
 				.build()
 
@@ -478,7 +478,8 @@ describe('closure-based Document', () => {
 			expect(instance.title).toBe('Chained Document')
 			expect(instance.description).toBe('Built with chaining')
 			expect(instance.code).toBe('CHN-001')
-			expect(instance.releaseDate).toBe('2024-01-01')
+			expect(instance.issuer).toBe('Chain Agency')
+			expect(instance.edition).toEqual({ key: '2024-01', label: 'Rev. January 2024', date: '2024-01' })
 			expect(instance.metadata).toEqual({ custom: 'value' })
 		})
 

@@ -5,18 +5,21 @@ import { p } from "@paradoc/core";
 import { createMemoryResolver } from "@paradoc/resolvers/memory";
 
 const schema = {
-  "$schema": "https://schema.paradoc.dev/2026-09-24.json",
+  "$schema": "https://schema.paradoc.dev/2026-10-02.json",
   "kind": "form",
   "name": "i-9",
   "version": "1.0.0",
   "title": "Employment Eligibility Verification",
   "description": "Used by U.S. employers to verify the identity and employment authorization of every new hire. Section 1 captures the employee's self-attestation of citizenship or immigration status; Section 2 captures the employer's certification that they physically examined acceptable List A or List B+C documents.",
   "code": "I-9",
-  "releaseDate": "2025-01-20",
+  "issuer": "U.S. Citizenship and Immigration Services",
+  "edition": {
+    "key": "2025-01-20",
+    "label": "Edition 01/20/25",
+    "date": "2025-01-20"
+  },
   "metadata": {
-    "issuer": "U.S. Citizenship and Immigration Services",
-    "domain": "employment",
-    "sourceUrl": null
+    "domain": "employment"
   },
   "instructions": {
     "kind": "file",

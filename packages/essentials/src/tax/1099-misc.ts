@@ -5,21 +5,24 @@ import { p } from "@paradoc/core";
 import { createMemoryResolver } from "@paradoc/resolvers/memory";
 
 const schema = {
-  "$schema": "https://schema.paradoc.dev/2026-09-24.json",
+  "$schema": "https://schema.paradoc.dev/2026-10-02.json",
   "kind": "form",
   "name": "1099-misc",
   "version": "1.0.0",
   "title": "Miscellaneous Information",
   "code": "1099-MISC",
-  "releaseDate": "2025-04-01",
-  "description": "U.S. federal information return filed by a payer to report miscellaneous payments — rents, royalties, other income, fishing/farming proceeds, medical and health-care payments, attorney gross proceeds, NQDC deferrals, and similar — made to a recipient during a calendar year. Copy A goes to the IRS; Copy 1 to the state tax department; Copies B and 2 to the recipient.",
+  "issuer": "U.S. Internal Revenue Service",
+  "edition": {
+    "key": "2025-04",
+    "label": "Rev. April 2025",
+    "date": "2025-04"
+  },
   "metadata": {
-    "issuer": "Internal Revenue Service",
     "domain": "tax",
-    "sourceUrl": "https://www.irs.gov/forms-pubs/about-form-1099-misc",
     "catNo": "14425J",
     "ombNo": "1545-0115"
   },
+  "description": "U.S. federal information return filed by a payer to report miscellaneous payments — rents, royalties, other income, fishing/farming proceeds, medical and health-care payments, attorney gross proceeds, NQDC deferrals, and similar — made to a recipient during a calendar year. Copy A goes to the IRS; Copy 1 to the state tax department; Copies B and 2 to the recipient.",
   "instructions": {
     "kind": "file",
     "path": "1099-misc.instructions.md",

@@ -22,7 +22,7 @@ const fields = {
 function runtime(options?: Parameters<typeof createParadocRuntime>[1]) {
 	return createParadocRuntime(
 		{
-			$schema: "https://schema.paradoc.dev/2026-09-24.json",
+			$schema: "https://schema.paradoc.dev/2026-10-02.json",
 			kind: "form",
 			name: "coerce",
 			version: "1.0.0",

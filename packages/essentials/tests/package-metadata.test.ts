@@ -19,8 +19,8 @@ const exportedCodes = Object.values(essentials).map(
   (form) => (form.spec as { code: string }).code,
 )
 const governmentCodes = Object.values(essentials)
-  .map((form) => form.spec as { code: string; metadata?: { issuer?: string } })
-  .filter((spec) => spec.metadata?.issuer)
+  .map((form) => form.spec as { code: string; issuer?: string })
+  .filter((spec) => spec.issuer)
   .map((spec) => spec.code)
 
 const achCodes = exportedCodes.filter((code) => code.startsWith('ACH-'))

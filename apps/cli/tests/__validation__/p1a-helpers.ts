@@ -105,7 +105,7 @@ export const TLS_ENV = { NODE_TLS_REJECT_UNAUTHORIZED: '0' }
 
 export function sampleForm(name: string): Record<string, unknown> {
   return {
-    $schema: 'https://schema.paradoc.dev/2026-09-24.json',
+    $schema: 'https://schema.paradoc.dev/2026-10-02.json',
     kind: 'form',
     name,
     version: '1.0.0',
@@ -115,7 +115,7 @@ export function sampleForm(name: string): Record<string, unknown> {
 }
 
 export const W9_YAML = `# Author note: keep this comment
-$schema: https://schema.paradoc.dev/2026-09-24.json
+$schema: https://schema.paradoc.dev/2026-10-02.json
 kind: form
 name: w9
 version: 1.0.0

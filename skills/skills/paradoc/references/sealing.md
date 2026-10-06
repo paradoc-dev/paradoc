@@ -37,7 +37,7 @@ This scratch form has a PDF layer with absolute slots and a markdown layer with 
 
 ```json schema=artifact
 {
-  "$schema": "https://schema.paradoc.dev/2026-09-24.json",
+  "$schema": "https://schema.paradoc.dev/2026-10-02.json",
   "kind": "form",
   "name": "pet-addendum",
   "version": "1.0.0",
@@ -284,7 +284,7 @@ const w9Draft = w9
   .addSignatory('taxpayer', 'taxpayer-0', { signerId: 'jane' })
 
 const bundle = p.bundle({
-  $schema: 'https://schema.paradoc.dev/2026-09-24.json',
+  $schema: 'https://schema.paradoc.dev/2026-10-02.json',
   name: 'move-in-packet',
   version: '1.0.0',
   title: 'Move-in Packet',

@@ -60,6 +60,7 @@ Before 1.0, the package and hosted schema service contain only the current dated
 
 | Version | Changes |
 | ------- | ------- |
+| `2026-10-02` | An artifact can name its issuer (`issuer`) and the issuer's edition it encodes (`edition`: `key`, `label`, `date`, `effectiveFrom`). `releaseDate` is removed. A registry bundle item names its artifact by address (`@org/repo/name`) with optional `edition` and `version`. `paradoc migrate` removes `releaseDate` and moves a slug's `@version` into `version`. |
 | `2026-09-24` | A layer declares signature slots only in `signatures`: `signatureBlocks` and `anchorBlocks` are removed. `paradoc migrate` moves each block into `signatures` under the same id, with the block type `date` renamed `date_signed`. |
 | `2026-09-23` | Only a PDF file layer takes `bindings` and `bindingsFrom`. A binding maps an AcroForm field name (key) to a Paradoc path (value), and a key fits a fully qualified AcroForm name (up to 500 characters). |
 | `2026-09-22` | Signature placement `'auto'` is renamed `'flow'`. An inline layer cannot hold a React composition (`text/tsx`, `text/jsx`). A duration needs at least one date or time component. |

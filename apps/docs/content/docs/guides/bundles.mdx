@@ -280,7 +280,7 @@ Bundles support three content types:
 |------|-------------|
 | `inline` | Artifact embedded directly in the bundle |
 | `path` | Reference to a local file path |
-| `registry` | Reference to a registry slug (e.g., `@org/artifact`) |
+| `registry` | Reference to a registry artifact by coordinate (e.g., `@org/repo/artifact/2024-03@1.0.0`) |
 
 ```ts
 const bundle = p
@@ -288,6 +288,6 @@ const bundle = p
   .name('mixed-bundle')
   .inline('embedded', someForm)           // Embedded
   .path('local', './forms/other.yaml')    // File reference
-  .registry('shared', '@acme/forms/disclosure') // Registry reference
+  .registry('shared', '@acme/forms/disclosure/2024-03@1.0.0') // Registry reference
   .build()
 ```

@@ -151,6 +151,8 @@ paradoc migrate forms/                           # rewrite in place; JSON stays 
 paradoc migrate lease.json --from 2026-08-10     # $schema missing, undated, unpublished, or not Paradoc's
 ```
 
+The 2026-10-02 step removes `releaseDate` and moves a registry item's trailing `@version` out of `slug` into `version`.
+
 Each file reports `migrated`, `current` or `failed`. A failed file stays as it was, and the command exits 1. When a step names a value it cannot convert, fix that value by hand and run `migrate` again. Files that are not artifacts are skipped. To bump the artifact's own `version`, use `paradoc version`.
 
 ### version, generate, hash

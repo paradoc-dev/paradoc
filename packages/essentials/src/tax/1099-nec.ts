@@ -5,18 +5,21 @@ import { p } from "@paradoc/core";
 import { createMemoryResolver } from "@paradoc/resolvers/memory";
 
 const schema = {
-  "$schema": "https://schema.paradoc.dev/2026-09-24.json",
+  "$schema": "https://schema.paradoc.dev/2026-10-02.json",
   "kind": "form",
   "name": "1099-nec",
   "version": "1.0.0",
   "title": "Nonemployee Compensation",
   "description": "An IRS information return filed by a payer to report nonemployee compensation, excess golden parachute payments, and any federal or state tax withheld for a recipient over a calendar year. Copy A is filed with the IRS, Copy 1 with the state tax department, and Copies B and 2 are furnished to the recipient.",
   "code": "1099-NEC",
-  "releaseDate": "2025-04-01",
+  "issuer": "U.S. Internal Revenue Service",
+  "edition": {
+    "key": "2025-04",
+    "label": "Rev. April 2025",
+    "date": "2025-04"
+  },
   "metadata": {
-    "issuer": "Internal Revenue Service",
     "domain": "tax",
-    "sourceUrl": "https://www.irs.gov/forms-pubs/about-form-1099-nec",
     "catNo": "72590N",
     "ombNo": "1545-0116"
   },

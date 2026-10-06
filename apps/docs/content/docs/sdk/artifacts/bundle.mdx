@@ -3,7 +3,7 @@ title: bundle
 description: Create Bundle artifacts to group multiple artifacts together
 ---
 
-Create Bundle artifacts to group multiple documents, forms, and checklists into a single distributable package. Bundles support conditional includes and can reference content inline, by file path, or by registry slug.
+Create Bundle artifacts to group multiple documents, forms, and checklists into a single distributable package. Bundles support conditional includes and can reference content inline, by file path, or by registry coordinate.
 
 ## Examples
 
@@ -100,9 +100,10 @@ p.bundle(input: BundleInput): BundleInstance
   { name: 'version', type: 'string', description: 'Artifact version (semantic versioning)', isOptional: true },
   { name: 'title', type: 'string', description: 'Human-friendly name presented to end users', isOptional: true },
   { name: 'description', type: 'string', description: 'Long-form description or context', isOptional: true },
-  { name: 'code', type: 'string', description: 'Internal code or reference number', isOptional: true },
+  { name: 'code', type: 'string', description: 'The form number as printed by its issuer (e.g. W-9, ACORD 25), or a self-issued form\'s own number', isOptional: true },
   { name: 'language', type: 'string', description: 'BCP 47 source language tag; defaults to en when omitted', isOptional: true },
-  { name: 'releaseDate', type: 'string', description: 'ISO date string indicating when the artifact was released', isOptional: true },
+  { name: 'issuer', type: 'string', description: 'Organization that issues the form', isOptional: true },
+  { name: 'edition', type: 'Edition', description: 'Issuer edition: { key, label, date?, effectiveFrom? }', isOptional: true },
   { name: 'metadata', type: 'Metadata', description: 'Custom metadata map (keys must be alphanumeric with hyphens)', isOptional: true },
   { name: 'instructions', type: 'ContentRef', description: 'Domain or compliance reference content', isOptional: true },
   { name: 'agentInstructions', type: 'ContentRef', description: 'LLM/agent prompts for presentation guidance', isOptional: true },
@@ -120,9 +121,10 @@ Returns a `BundleInstance` with the following properties and methods:
   { name: 'version', type: 'string | undefined', description: 'Semantic version' },
   { name: 'title', type: 'string | undefined', description: 'Human-readable title' },
   { name: 'description', type: 'string | undefined', description: 'Description text' },
-  { name: 'code', type: 'string | undefined', description: 'Internal code or reference number' },
+  { name: 'code', type: 'string | undefined', description: 'The form number as printed by its issuer (e.g. W-9, ACORD 25), or a self-issued form\'s own number' },
   { name: 'language', type: 'string | undefined', description: 'BCP 47 source language tag' },
-  { name: 'releaseDate', type: 'string | undefined', description: 'ISO date string' },
+  { name: 'issuer', type: 'string | undefined', description: 'Issuing organization' },
+  { name: 'edition', type: 'Edition | undefined', description: 'Issuer edition' },
   { name: 'metadata', type: 'Metadata | undefined', description: 'Custom metadata map' },
   { name: 'instructions', type: 'ContentRef | undefined', description: 'Domain or compliance reference content' },
   { name: 'agentInstructions', type: 'ContentRef | undefined', description: 'LLM/agent prompts for presentation guidance' },
@@ -150,13 +152,14 @@ Chain methods to build a bundle incrementally:
     { name: 'description', params: 'value: string', description: 'Set description' },
     { name: 'code', params: 'value: string', description: 'Set external reference code' },
     { name: 'language', params: 'value: string', description: 'Set source language (BCP 47 tag)' },
-    { name: 'releaseDate', params: 'value: string', description: 'Set release date (ISO format)' },
+    { name: 'issuer', params: 'value: string', description: 'Set the issuing organization' },
+    { name: 'edition', params: '{ key, label, date?, effectiveFrom? }', description: 'Set the issuer edition' },
     { name: 'metadata', params: 'value: Metadata', description: 'Set custom metadata' },
     { name: 'instructions', params: 'value: ContentRef', description: 'Set domain/compliance reference content' },
     { name: 'agentInstructions', params: 'value: ContentRef', description: 'Set LLM/agent presentation guidance' },
     { name: 'defs', params: 'defsDef: DefsSection', description: 'Set all typed computed values' },
     { name: 'def', params: 'name: string, expression: string | Expression', description: 'Add a single typed computed value' },
-    { name: 'registry', params: 'key: string, slug: string, include?: CondExpr', description: 'Add registry reference' },
+    { name: 'registry', params: 'key: string, coordinate: string, include?: CondExpr', description: 'Add registry reference from a coordinate: @org/repo/name[/edition][@version]' },
     { name: 'path', params: 'key: string, path: string, include?: CondExpr', description: 'Add path reference' },
     { name: 'inline', params: 'key: string, artifact: Artifact, include?: CondExpr', description: 'Add inline artifact' },
     { name: 'contents', params: 'items: BundleContentItem[]', description: 'Set all contents at once' },
@@ -186,7 +189,7 @@ Use builder methods to add content:
 
 ```ts
 // Registry reference - published artifacts
-.registry('lease', 'residential-lease@1.0.0')
+.registry('lease', '@acme/forms/residential-lease/2024-03@1.0.0')
 
 // Path reference - local files
 .path('addendum', './pet-addendum.yaml', 'hasPets')
@@ -221,12 +224,25 @@ Reference an artifact by file path:
 
 #### RegistryBundleItem
 
-Reference a published artifact by slug:
+Reference a published artifact by address, with an optional edition and version. The builder takes a coordinate, `@org/repo/name[/edition][@version]`, and stores the three parts separately:
+
+| Coordinate | Resolves to |
+|------------|-------------|
+| `@org/repo/w-9` | The current edition, latest version |
+| `@org/repo/w-9@1.0.0` | That version of the current edition. Fails if absent; never falls back to another edition |
+| `@org/repo/w-9/2024-03` | Latest version of that edition |
+| `@org/repo/w-9/2024-03@1.0.0` | Full pin |
+| `@org/repo/w-9/current@latest` | The same as `@org/repo/w-9` |
+
+A two-segment value such as `@acme/disclosure` throws.
+
 
 <PropertiesTable properties={[
   { name: 'type', type: "'registry'", description: 'Discriminator for registry-based bundle item' },
   { name: 'key', type: 'string', description: 'Unique key for this item within the bundle' },
-  { name: 'slug', type: 'string', description: 'Registry slug identifying the artifact' },
+  { name: 'slug', type: 'string', description: 'Registry address of the artifact: @org/repo/name, with no edition or version' },
+  { name: 'edition', type: 'string', description: 'Edition key. Omitted means the registry\'s current edition', isOptional: true },
+  { name: 'version', type: 'string', description: 'Exact semantic version. Omitted means the latest version of the edition', isOptional: true },
   { name: 'include', type: 'CondExpr', description: 'Conditional expression for including this item', isOptional: true },
 ]} />
 

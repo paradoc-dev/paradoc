@@ -6,6 +6,7 @@
 // Shared types
 export type {
   ArtifactBase,
+  ArtifactEdition,
   InlineContentRef,
   FileContentRef,
   ContentRef,

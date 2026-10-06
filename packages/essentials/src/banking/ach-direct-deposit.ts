@@ -5,14 +5,13 @@ import { p } from "@paradoc/core";
 import { createMemoryResolver } from "@paradoc/resolvers/memory";
 
 const schema = {
-  "$schema": "https://schema.paradoc.dev/2026-09-24.json",
+  "$schema": "https://schema.paradoc.dev/2026-10-02.json",
   "kind": "form",
   "name": "ach-direct-deposit",
   "version": "1.0.0",
   "title": "ACH Direct Deposit Authorization",
   "description": "Authorization by which an employee authorizes their employer (directly or through a payroll service provider) to deposit net pay—in whole or split across up to four deposit accounts—via ACH credit entries to the named depository institution(s). Governed by NACHA Operating Rules and (for non-exempt employee protections) FLSA and state wage law.",
   "code": "ACH-DD-AUTH",
-  "releaseDate": "2026-05-02",
   "metadata": {
     "domain": "banking"
   },

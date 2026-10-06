@@ -17,7 +17,7 @@ it("sessions-005: plain amount on a field with no currency is not stored as USD"
 
 export function artifact(extra: Record<string, unknown>) {
   return {
-    $schema: "https://schema.paradoc.dev/2026-09-24.json", kind: "form", name: "v", version: "1.0.0", title: "V",
+    $schema: "https://schema.paradoc.dev/2026-10-02.json", kind: "form", name: "v", version: "1.0.0", title: "V",
     parties: {}, fields: {},
     layers: { composition: { kind: "file", mimeType: "text/plain", path: "v.txt" } }, defaultLayer: "composition",
     ...extra,

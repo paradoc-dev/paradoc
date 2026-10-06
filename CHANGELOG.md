@@ -4,6 +4,13 @@ All notable changes to Paradoc. Packages are versioned in lockstep.
 
 ## [Unreleased]
 
+### Breaking changes
+
+- Artifact schema `2026-10-02` removes `releaseDate`. Use the new optional `issuer` and `edition` (`key`, `label`, `date`, `effectiveFrom`) to record who issued a form and which edition it encodes. `code` is now the form number as printed by its issuer.
+- A registry bundle item's `slug` is only the address `@org/repo/name`. Edition and version move to the new `edition` and `version` fields. The coordinate form is `@org/repo/name[/edition][@version]`, where `current` names the current edition and `latest` the latest version. Edition keys cannot be `current`, `latest`, `editions`, `tags` or `diff`.
+- The builders drop `.releaseDate()` for `.issuer()` and `.edition()`, and `.registry(key, coordinate, include?)` takes a full three-segment coordinate.
+- `paradoc migrate` moves artifacts from `2026-09-24` to `2026-10-02`: it removes `releaseDate` and moves a slug's `@version` into `version`.
+
 ### Other changes
 
 #### CLI

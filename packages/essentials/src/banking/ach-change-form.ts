@@ -5,14 +5,13 @@ import { p } from "@paradoc/core";
 import { createMemoryResolver } from "@paradoc/resolvers/memory";
 
 const schema = {
-  "$schema": "https://schema.paradoc.dev/2026-09-24.json",
+  "$schema": "https://schema.paradoc.dev/2026-10-02.json",
   "kind": "form",
   "name": "ach-change-form",
   "version": "1.0.0",
   "title": "ACH Change Form",
   "description": "Standalone form by which an account holder requests a change to an existing ACH arrangement (direct deposit, ACH credit, or ACH debit) already authorized with an originator. Captures change type, identification of the existing arrangement, new account or amount/frequency information, and an effective date. Governed by NACHA Operating Rules and the legal framework of the underlying authorization.",
   "code": "ACH-CHANGE",
-  "releaseDate": "2026-05-02",
   "metadata": {
     "domain": "banking"
   },

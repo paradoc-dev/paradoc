@@ -7,6 +7,9 @@ import type { Bundle } from '@paradoc/types';
 import { ArtifactSchema } from '../shared/base';
 import { DefsSectionSchema } from '../expressions/defs-section';
 import { addDuplicateIdentityIssues } from '../shared/unique';
+import { ARTIFACT_ADDRESS_PATTERN } from '../../primitives/artifact-coordinate';
+import { EditionKeySchema } from '../../primitives/artifact-selectors';
+import { ARTIFACT_VERSION_PATTERN } from '../../primitives/version';
 
 /**
  * Base properties shared by every bundle content item with an optional
@@ -62,8 +65,15 @@ const PathContentItemSchema = ContentItemBaseSchema.extend({
 const RegistryContentItemSchema = ContentItemBaseSchema.extend({
 	type: z.literal('registry'),
 	slug: z.string()
-		.min(1)
-		.describe('Resource slug in format @org/repo/resource or @org/repo/resource@version'),
+		.regex(ARTIFACT_ADDRESS_PATTERN, 'Expected an artifact address such as @org/repo/name, with no edition or version')
+		.describe('Artifact address @org/repo/name, with no edition or version'),
+	edition: EditionKeySchema
+		.describe('Edition key. When omitted, the registry\'s current edition is used.')
+		.optional(),
+	version: z.string()
+		.regex(ARTIFACT_VERSION_PATTERN, 'Expected an exact SemVer version such as 1.2.0')
+		.describe('Exact version. When omitted, the latest version of the edition is used.')
+		.optional(),
 }).strict();
 
 export const BundleObjectSchema = ArtifactSchema.extend({
@@ -90,7 +100,7 @@ export const BundleSchema: z.ZodType<Bundle> = BundleObjectSchema;
  * Bundle content item — one of three types:
  * - { type: 'inline', key, artifact, include? } - inline artifact definition
  * - { type: 'path', key, path, include? } - reference relative to the bundle file's directory
- * - { type: 'registry', key, slug, include? } - reference by registry slug
+ * - { type: 'registry', key, slug, edition?, version?, include? } - reference to a registry artifact
  */
 export const BundleContentItemSchema: z.ZodDiscriminatedUnion<[
 	typeof InlineContentItemSchema,

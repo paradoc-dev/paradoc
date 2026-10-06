@@ -13,6 +13,7 @@ import type {
 	Metadata,
 	ContentRef,
 	Resolver,
+	ArtifactEdition,
 } from '@paradoc/types'
 import type { RuntimeDocumentJSON } from '@paradoc/types'
 import { parseDocument, parseLayer } from '@/validation/artifact-parsers'
@@ -430,7 +431,8 @@ export interface DocumentBuilderInterface {
 	description(value: string): DocumentBuilderInterface
 	code(value: string): DocumentBuilderInterface
 	language(value: string): DocumentBuilderInterface
-	releaseDate(value: string): DocumentBuilderInterface
+	issuer(value: string): DocumentBuilderInterface
+	edition(value: ArtifactEdition): DocumentBuilderInterface
 	metadata(value: Metadata): DocumentBuilderInterface
 	instructions(value: ContentRef): DocumentBuilderInterface
 	agentInstructions(value: ContentRef): DocumentBuilderInterface
@@ -460,7 +462,8 @@ function createDocumentBuilder(): DocumentBuilderInterface {
 		description: undefined,
 		code: undefined,
 		language: undefined,
-		releaseDate: undefined,
+		issuer: undefined,
+		edition: undefined,
 		metadata: {},
 		instructions: undefined,
 		agentInstructions: undefined,
@@ -478,7 +481,8 @@ function createDocumentBuilder(): DocumentBuilderInterface {
 			_def.description = doc.description
 			_def.code = doc.code
 			_def.language = doc.language
-			_def.releaseDate = doc.releaseDate
+			_def.issuer = doc.issuer
+			_def.edition = doc.edition
 			_def.metadata = doc.metadata ? { ...doc.metadata } : {}
 			_def.instructions = doc.instructions
 			_def.agentInstructions = doc.agentInstructions
@@ -519,8 +523,13 @@ function createDocumentBuilder(): DocumentBuilderInterface {
 			return builder
 		},
 
-		releaseDate(value: string) {
-			_def.releaseDate = value
+		issuer(value: string) {
+			_def.issuer = value
+			return builder
+		},
+
+		edition(value: ArtifactEdition) {
+			_def.edition = value
 			return builder
 		},
 

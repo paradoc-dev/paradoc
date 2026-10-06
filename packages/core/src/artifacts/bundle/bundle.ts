@@ -25,7 +25,10 @@ import type {
 	RuntimeContext,
 	RuntimeDocumentJSON,
 	RuntimeFormJSON,
+	ArtifactEdition,
+	RegistryBundleItem,
 } from '@paradoc/types'
+import { parseArtifactCoordinate } from '@paradoc/schemas'
 import {
 	parseBundle as parseBundleSchema,
 	parseBundleContentItem,
@@ -982,13 +985,18 @@ export interface BundleBuilderInterface {
 	description(value: string): BundleBuilderInterface
 	code(value: string): BundleBuilderInterface
 	language(value: string): BundleBuilderInterface
-	releaseDate(value: string): BundleBuilderInterface
+	issuer(value: string): BundleBuilderInterface
+	edition(value: ArtifactEdition): BundleBuilderInterface
 	metadata(value: Metadata): BundleBuilderInterface
 	instructions(value: ContentRef): BundleBuilderInterface
 	agentInstructions(value: ContentRef): BundleBuilderInterface
 	defs(defsDef: DefsSection): BundleBuilderInterface
 	def(name: string, expression: string | Expression): BundleBuilderInterface
-	registry(key: string, slug: string, include?: CondExpr): BundleBuilderInterface
+	/**
+	 * Add a registry artifact by coordinate: `@org/repo/name`, optionally
+	 * followed by `/edition` and `@version`.
+	 */
+	registry(key: string, coordinate: string, include?: CondExpr): BundleBuilderInterface
 	path(key: string, pathValue: string, include?: CondExpr): BundleBuilderInterface
 	inline(key: string, artifact: BundleArtifactInput, include?: CondExpr): BundleBuilderInterface
 	contents(contentsArray: BundleContentItem[]): BundleBuilderInterface
@@ -1009,7 +1017,8 @@ function createBundleBuilder(): BundleBuilderInterface {
 		description: undefined,
 		code: undefined,
 		language: undefined,
-		releaseDate: undefined,
+		issuer: undefined,
+		edition: undefined,
 		metadata: {},
 		instructions: undefined,
 		agentInstructions: undefined,
@@ -1027,7 +1036,8 @@ function createBundleBuilder(): BundleBuilderInterface {
 			_def.description = parsed.description
 			_def.code = parsed.code
 			_def.language = parsed.language
-			_def.releaseDate = parsed.releaseDate
+			_def.issuer = parsed.issuer
+			_def.edition = parsed.edition
 			_def.metadata = parsed.metadata ? { ...parsed.metadata } : {}
 			_def.instructions = parsed.instructions
 			_def.agentInstructions = parsed.agentInstructions
@@ -1066,8 +1076,13 @@ function createBundleBuilder(): BundleBuilderInterface {
 			return builder
 		},
 
-		releaseDate(value: string) {
-			_def.releaseDate = value
+		issuer(value: string) {
+			_def.issuer = value
+			return builder
+		},
+
+		edition(value: ArtifactEdition) {
+			_def.edition = value
 			return builder
 		},
 
@@ -1102,11 +1117,19 @@ function createBundleBuilder(): BundleBuilderInterface {
 			return builder
 		},
 
-		registry(key: string, slug: string, include?: CondExpr) {
+		registry(key: string, coordinate: string, include?: CondExpr) {
 			const contents = (_def.contents as BundleContentItem[]) || []
-			const item: BundleContentItem = { type: 'registry', key, slug }
-			if (include !== undefined) {
-				;(item as { type: 'registry'; key: string; slug: string; include?: CondExpr }).include = include
+			const parts = parseArtifactCoordinate(coordinate)
+			if (!parts) {
+				throw new TypeError(`"${coordinate}" is not an artifact coordinate; expected @org/repo/name[/edition][@version]`)
+			}
+			const item: RegistryBundleItem = {
+				type: 'registry',
+				key,
+				slug: `@${parts.org}/${parts.repo}/${parts.name}`,
+				...(parts.edition !== undefined && { edition: parts.edition }),
+				...(parts.version !== undefined && { version: parts.version }),
+				...(include !== undefined && { include }),
 			}
 			contents.push(parseBundleContentItem(item) as BundleContentItem)
 			_def.contents = contents

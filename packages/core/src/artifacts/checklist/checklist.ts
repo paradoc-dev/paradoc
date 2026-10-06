@@ -5,7 +5,7 @@
  * file using closures and composition.
  */
 
-import type { Checklist, ChecklistData, ChecklistItem, ChecklistPhase, Layer, Metadata, ContentRef, Resolver, RuntimeChecklistJSON } from '@paradoc/types'
+import type { ArtifactEdition, Checklist, ChecklistData, ChecklistItem, ChecklistPhase, Layer, Metadata, ContentRef, Resolver, RuntimeChecklistJSON } from '@paradoc/types'
 import { createContext } from '@paradoc/expr'
 import { resolveLayerBindings } from '@paradoc/render'
 import { buildRendererLayer, resolveLayerKey, selectLayerRenderer } from '../shared/render-layer'
@@ -935,7 +935,8 @@ export interface ChecklistBuilderInterface<TItems extends ChecklistItem[] = []> 
 	description(value: string | undefined): ChecklistBuilderInterface<TItems>
 	code(value: string | undefined): ChecklistBuilderInterface<TItems>
 	language(value: string): ChecklistBuilderInterface<TItems>
-	releaseDate(value: string | undefined): ChecklistBuilderInterface<TItems>
+	issuer(value: string | undefined): ChecklistBuilderInterface<TItems>
+	edition(value: ArtifactEdition | undefined): ChecklistBuilderInterface<TItems>
 	metadata(value: Metadata | undefined): ChecklistBuilderInterface<TItems>
 	instructions(value: ContentRef): ChecklistBuilderInterface<TItems>
 	agentInstructions(value: ContentRef): ChecklistBuilderInterface<TItems>
@@ -993,7 +994,8 @@ function createChecklistBuilder<TItems extends ChecklistItem[] = []>(): Checklis
 		description: undefined,
 		code: undefined,
 		language: undefined,
-		releaseDate: undefined,
+		issuer: undefined,
+		edition: undefined,
 		metadata: {},
 		instructions: undefined,
 		agentInstructions: undefined,
@@ -1012,7 +1014,8 @@ function createChecklistBuilder<TItems extends ChecklistItem[] = []>(): Checklis
 			_def.description = checklistValue.description
 			_def.code = checklistValue.code
 			_def.language = checklistValue.language
-			_def.releaseDate = checklistValue.releaseDate
+			_def.issuer = checklistValue.issuer
+			_def.edition = checklistValue.edition
 			_def.metadata = checklistValue.metadata ? { ...checklistValue.metadata } : {}
 			_def.instructions = checklistValue.instructions
 			_def.agentInstructions = checklistValue.agentInstructions
@@ -1054,8 +1057,13 @@ function createChecklistBuilder<TItems extends ChecklistItem[] = []>(): Checklis
 			return builder
 		},
 
-		releaseDate(value: string | undefined) {
-			_def.releaseDate = value
+		issuer(value: string | undefined) {
+			_def.issuer = value
+			return builder
+		},
+
+		edition(value: ArtifactEdition | undefined) {
+			_def.edition = value
 			return builder
 		},
 

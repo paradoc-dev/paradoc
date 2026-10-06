@@ -201,7 +201,8 @@ const leadPaintDisclosure = p
   .version("1.0.0")
   .title("Lead Paint Disclosure")
   .code("EPA-747-K-12-001")
-  .releaseDate("2025-12-01")
+  .issuer("U.S. Environmental Protection Agency")
+  .edition({ key: "2025-12", label: "Rev. December 2025", date: "2025-12" })
   .metadata({ agency: "EPA/HUD", cfr: "40 CFR 745" })
   .layers({
     pdf: p

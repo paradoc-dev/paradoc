@@ -1,6 +1,7 @@
 import { Command } from 'commander'
 import kleur from 'kleur'
 import { resolve } from 'node:path'
+import { formatArtifactCoordinate, parseArtifactCoordinate } from '@paradoc/schemas'
 import { LocalFileSystem } from '../utils/local-fs.js'
 import { resolveArtifactTarget } from '../utils/io.js'
 
@@ -60,6 +61,15 @@ export function createShowCommand(): Command {
           const meta = artifact as unknown as Record<string, unknown>
           if (typeof meta.version === 'string') {
             console.log(kleur.gray('Version:') + `  ${meta.version}`)
+          }
+
+          // Issuer and edition if present
+          if (typeof meta.issuer === 'string') {
+            console.log(kleur.gray('Issuer:') + `   ${meta.issuer}`)
+          }
+          const edition = meta.edition as { key?: string; label?: string } | undefined
+          if (edition && typeof edition.key === 'string') {
+            console.log(kleur.gray('Edition:') + `  ${edition.label ?? edition.key} (${edition.key})`)
           }
 
           // Title if present
@@ -153,7 +163,11 @@ export function createShowCommand(): Command {
               if (item.type === 'path') {
                 console.log(`  - ${item.key}: ${item.path}`)
               } else if (item.type === 'registry') {
-                console.log(`  - ${item.key}: ${item.slug} (registry)`)
+                const base = parseArtifactCoordinate(item.slug)
+                const coordinate = base
+                  ? formatArtifactCoordinate({ ...base, edition: item.edition, version: item.version })
+                  : item.slug
+                console.log(`  - ${item.key}: ${coordinate} (registry)`)
               } else if (item.type === 'inline') {
                 const inlineKind = item.artifact?.kind ?? 'unknown'
                 console.log(`  - ${item.key}: (inline ${inlineKind})`)

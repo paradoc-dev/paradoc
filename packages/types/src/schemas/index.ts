@@ -66,6 +66,7 @@ export type {
   RulesSection,
   // Shared types
   ArtifactBase,
+  ArtifactEdition,
   InlineContentRef,
   FileContentRef,
   ContentRef,

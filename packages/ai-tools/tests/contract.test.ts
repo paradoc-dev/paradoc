@@ -165,6 +165,16 @@ describe('shared AI tool contract', () => {
 		expect(result.evaluation_context).toEqual(context)
 	})
 
+	it('reports issuer and edition in metadata, and omits them when absent', async () => {
+		const edition = { key: '2025-12', label: 'Rev. December 2025', date: '2025-12' }
+		const withBoth = await executeInspectArtifact({ source: 'artifact', artifact: { ...formArtifact, issuer: 'U.S. Environmental Protection Agency', edition }, sections: ['metadata'] })
+		expect(withBoth.sections.metadata).toMatchObject({ issuer: 'U.S. Environmental Protection Agency', edition })
+		const without = await executeInspectArtifact({ source: 'artifact', artifact: formArtifact, sections: ['metadata'] })
+		expect(without.sections.metadata).toMatchObject({ name: 'lease-intake' })
+		expect((without.sections.metadata as Record<string, unknown>).issuer).toBeUndefined()
+		expect((without.sections.metadata as Record<string, unknown>).edition).toBeUndefined()
+	})
+
 	it('reports bounded selectable inspection and truthful fill state', async () => {
 		const inspected = await executeInspectArtifact({ source: 'artifact', artifact: formArtifact, sections: ['fields', 'layers'], max_items: 1 })
 		expect(inspected.sections.fields).toEqual({ name: expect.any(Object) })

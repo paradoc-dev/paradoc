@@ -59,14 +59,14 @@ describe('Bundle', () => {
               {
                 type: 'registry',
                 key: 'lease',
-                slug: '@company/lease-agreement',
+                slug: '@company/forms/lease-agreement',
               },
             ],
           }
           const result = bundle(input)
           expect(result.contents).toHaveLength(1)
           const item = result.contents[0] as BundleContentItem & { type: 'registry' }
-          expect(item.slug).toBe('@company/lease-agreement')
+          expect(item.slug).toBe('@company/forms/lease-agreement')
         })
 
         test('creates bundle with path reference', () => {
@@ -102,7 +102,7 @@ describe('Bundle', () => {
               {
                 type: 'registry',
                 key: 'pet-addendum',
-                slug: '@company/pet-addendum',
+                slug: '@company/forms/pet-addendum',
                 include: 'hasPets',
               },
             ],
@@ -217,7 +217,7 @@ describe('Bundle', () => {
               {
                 type: 'registry',
                 key: 'ext',
-                slug: '@org/form',
+                slug: '@org/forms/form',
               },
               {
                 type: 'path',
@@ -375,12 +375,12 @@ describe('Bundle', () => {
             .name('ext-bundle')
             .version('1.0.0')
             .title('External Bundle')
-            .registry('lease', '@company/lease-agreement')
+            .registry('lease', '@company/forms/lease-agreement')
             .build()
           expect(result.contents).toHaveLength(1)
           const item = result.contents[0] as any
           expect(item.type).toBe('registry')
-          expect(item.slug).toBe('@company/lease-agreement')
+          expect(item.slug).toBe('@company/forms/lease-agreement')
         })
 
         test('builds bundle with registry reference and include condition', () => {
@@ -389,7 +389,7 @@ describe('Bundle', () => {
             .version('1.0.0')
             .title('Conditional Bundle')
             .def('hasPets', 'true')
-            .registry('pet-addendum', '@company/pet-addendum', 'hasPets')
+            .registry('pet-addendum', '@company/forms/pet-addendum', 'hasPets')
             .build()
           const item = result.contents[0] as any
           expect(item.include).toBe('hasPets')
@@ -503,7 +503,7 @@ describe('Bundle', () => {
               'doc',
               document().name('doc').version('1.0.0').title('Doc').build()
             )
-            .registry('ext', '@org/form')
+            .registry('ext', '@org/forms/form')
             .path('local', '/path/to/artifact.yaml')
             .build()
           expect(result.contents).toHaveLength(3)
@@ -623,9 +623,9 @@ describe('Bundle', () => {
                 .inlineLayer('default', { mimeType: 'text/markdown', text: '# Rental Disclosure' })
                 .build()
             )
-            .registry('lease', '@company/lease-agreement')
-            .registry('pet-addendum', '@company/pet-addendum', 'hasPets')
-            .registry('parking-addendum', '@company/parking-addendum', 'hasVehicle')
+            .registry('lease', '@company/forms/lease-agreement')
+            .registry('pet-addendum', '@company/forms/pet-addendum', 'hasPets')
+            .registry('parking-addendum', '@company/forms/parking-addendum', 'hasVehicle')
             .build()
 
           expect(result.name).toBe('rental-package')
@@ -653,7 +653,7 @@ describe('Bundle', () => {
             .version('1.0.0')
             .title('Main Package')
             .inline('disclosures', innerBundle)
-            .registry('main-form', '@company/main-form')
+            .registry('main-form', '@company/forms/main-form')
             .build()
 
           expect(result.contents).toHaveLength(2)

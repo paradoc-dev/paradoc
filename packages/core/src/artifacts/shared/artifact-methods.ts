@@ -6,7 +6,7 @@
  */
 
 import type { StandardSchemaV1 } from '@standard-schema/spec'
-import type { Artifact, Metadata, ContentRef } from '@paradoc/types'
+import type { Artifact, ArtifactEdition, Metadata, ContentRef } from '@paradoc/types'
 import { validate as validateArtifact, validateDefinition } from '@/validation/artifact'
 import { toYAML } from '@/serialization/serialization'
 import { assertCurrentSchemaVersion } from '@/serialization/schema-version'
@@ -36,14 +36,17 @@ export interface ArtifactMethods<T extends Artifact> {
 	/** Description */
 	readonly description: string | undefined
 
-	/** Artifact code */
+	/** The form number as printed by its issuer */
 	readonly code: string | undefined
+
+	/** The organization that issues the form */
+	readonly issuer: string | undefined
+
+	/** The issuer edition this artifact encodes */
+	readonly edition: ArtifactEdition | undefined
 
 	/** Artifact source language */
 	readonly language: string | undefined
-
-	/** Release date (ISO 8601) */
-	readonly releaseDate: string | undefined
 
 	/** Custom metadata */
 	readonly metadata: Metadata | undefined
@@ -153,8 +156,9 @@ export function withArtifactMethods<T extends Artifact>(data: T): ArtifactMethod
 		title: data.title,
 		description: data.description,
 		code: data.code,
+		issuer: data.issuer,
+		edition: data.edition,
 		language: data.language,
-		releaseDate: data.releaseDate,
 		metadata: data.metadata,
 		instructions: data.instructions,
 		agentInstructions: data.agentInstructions,

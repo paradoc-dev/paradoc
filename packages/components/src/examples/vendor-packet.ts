@@ -38,7 +38,10 @@ export const VENDOR_PACKET_KEYS = {
 } as const satisfies Record<string, string>;
 
 /** The registry slug the packet names the W-9 by. */
-export const VENDOR_PACKET_W9_SLUG = "@paradoc/essentials/tax/w-9";
+export const VENDOR_PACKET_W9_SLUG = "@paradoc/essentials/w-9";
+
+/** The W-9 edition the packet declares; the seal refuses a draft of any other. */
+export const VENDOR_PACKET_W9_EDITION = "2024-03";
 
 /**
  * What the annex is, as the bundle declares it.
@@ -84,7 +87,7 @@ export const vendorPacketSpec: Bundle = {
   metadata: { domain: "commerce" },
   contents: [
     { type: "inline", key: VENDOR_PACKET_KEYS.purchaseOrder, artifact: purchaseOrderForm },
-    { type: "registry", key: VENDOR_PACKET_KEYS.taxpayer, slug: VENDOR_PACKET_W9_SLUG },
+    { type: "registry", key: VENDOR_PACKET_KEYS.taxpayer, slug: VENDOR_PACKET_W9_SLUG, edition: VENDOR_PACKET_W9_EDITION },
     { type: "inline", key: VENDOR_PACKET_KEYS.insurance, artifact: insuranceAnnexSpec },
   ],
 };

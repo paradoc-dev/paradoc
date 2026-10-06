@@ -6,7 +6,7 @@ import { runCli } from '../setup/spawn-cli.js'
 
 const root = mkdtempSync(path.join(tmpdir(), 'paradoc-cli-102-'))
 const file = path.join(root, 'form.json')
-writeFileSync(file, JSON.stringify({ $schema: 'https://schema.paradoc.dev/2026-09-24.json', kind: 'form', name: 'form', title: 'Form', version: '1.0.0', fields: {}, instructions: { kind: 'file', mimeType: 'text/markdown', path: 'missing.md' } }))
+writeFileSync(file, JSON.stringify({ $schema: 'https://schema.paradoc.dev/2026-10-02.json', kind: 'form', name: 'form', title: 'Form', version: '1.0.0', fields: {}, instructions: { kind: 'file', mimeType: 'text/markdown', path: 'missing.md' } }))
 afterAll(() => rmSync(root, { recursive: true, force: true }))
 
 describe('paradoc-cli-102: checksum-only skips missing content files', () => {

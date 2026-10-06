@@ -6,7 +6,7 @@ import type { Form } from "@paradoc/types";
 import { ArtifactProvider, CheckModeProvider, PartialValuesProvider, useTotals } from "../src";
 
 const form = {
-  $schema: "https://schema.paradoc.dev/2026-09-24.json",
+  $schema: "https://schema.paradoc.dev/2026-10-02.json",
   kind: "form",
   name: "defs-fail",
   version: "1.0.0",

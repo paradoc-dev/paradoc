@@ -2,7 +2,7 @@
  * Shared types used across multiple artifact types
  */
 
-export type { ArtifactBase } from "./base";
+export type { ArtifactBase, ArtifactEdition } from "./base";
 export type { InlineContentRef, FileContentRef, ContentRef } from "./content-ref";
 export type { SignatureSlot, SignatureSlotPlacement, SignatureSlotType, InlineLayer, FileLayer, LayerFont, LayerFormat, LayerMoneyFormat, Layer, ReactLayerMimeType, Bindings } from "./layer";
 export type {

@@ -337,7 +337,7 @@ describe('Expression Type Checking', () => {
 				},
 				contents: [
 					{ type: 'inline', key: 'main', artifact: form },
-					{ type: 'registry', key: 'extra', slug: '@org/extra-form', include: 'isHighValue' },
+					{ type: 'registry', key: 'extra', slug: '@org/forms/extra-form', include: 'isHighValue' },
 				],
 			}
 
@@ -367,7 +367,7 @@ describe('Expression Type Checking', () => {
 				},
 				contents: [
 					{ type: 'inline', key: 'main', artifact: form },
-					{ type: 'registry', key: 'extra', slug: '@org/extra-form', include: 'amountCalc' },
+					{ type: 'registry', key: 'extra', slug: '@org/forms/extra-form', include: 'amountCalc' },
 				],
 			}
 

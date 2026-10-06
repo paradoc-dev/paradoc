@@ -37,7 +37,7 @@ describe('BundleInstance', () => {
           .inlineLayer('default', { mimeType: 'text/plain', text: 'Hello' })
           .build()
       )
-      .registry('external-form', '@org/external-form', 'isActive')
+      .registry('external-form', '@org/forms/external-form', 'isActive')
       .path('local-doc', '/path/to/doc.yaml')
       .build()
 
@@ -370,12 +370,36 @@ describe('BundleInstance', () => {
         .name('test')
         .version('1.0.0')
         .title('Test')
-        .registry('ext', '@org/form')
+        .registry('ext', '@org/forms/form')
         .build()
 
       expect(instance.contents).toHaveLength(1)
       expect(instance.contents[0]?.type).toBe('registry')
-      expect((instance.contents[0] as any)?.slug).toBe('@org/form')
+      expect((instance.contents[0] as any)?.slug).toBe('@org/forms/form')
+    })
+
+    test('registry() splits a coordinate into address, edition and version', () => {
+      const instance = bundle()
+        .name('test')
+        .registry('w9', '@irs/forms/w-9/2024-03@1.2.0')
+        .registry('w4', 'irs/forms/w-4/2025-01')
+        .registry('i9', '@uscis/forms/i-9@3.0.0')
+        .build()
+
+      expect(instance.contents).toEqual([
+        { type: 'registry', key: 'w9', slug: '@irs/forms/w-9', edition: '2024-03', version: '1.2.0' },
+        { type: 'registry', key: 'w4', slug: '@irs/forms/w-4', edition: '2025-01' },
+        { type: 'registry', key: 'i9', slug: '@uscis/forms/i-9', version: '3.0.0' },
+      ])
+    })
+
+    test.each([
+      '@org/form',
+      '@org/forms/form:Rev. 2024',
+      '@org/forms/form@^1.0.0',
+      '@org/forms/form@1.0.0/2024-03',
+    ])('registry() rejects %s, which is not a coordinate', (coordinate) => {
+      expect(() => bundle().name('test').registry('ext', coordinate)).toThrow(/not an artifact coordinate/)
     })
 
     test('registry() with include condition', () => {
@@ -384,7 +408,7 @@ describe('BundleInstance', () => {
         .version('1.0.0')
         .title('Test')
         .def('showForm', 'true')
-        .registry('ext', '@org/form', 'showForm')
+        .registry('ext', '@org/forms/form', 'showForm')
         .build()
 
       expect((instance.contents[0] as any)?.include).toBe('showForm')

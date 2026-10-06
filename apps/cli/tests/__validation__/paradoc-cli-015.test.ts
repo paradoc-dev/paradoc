@@ -13,7 +13,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const CLI = path.resolve(__dirname, '../../dist/index.js')
 const SCRATCH = '/tmp/paradoc-cli-015'
 
-const ITEM_YAML = `$schema: https://schema.paradoc.dev/2026-09-24.json
+const ITEM_YAML = `$schema: https://schema.paradoc.dev/2026-10-02.json
 name: lease
 kind: document
 version: 1.0.0

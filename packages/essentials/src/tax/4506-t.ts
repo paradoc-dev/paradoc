@@ -5,18 +5,21 @@ import { p } from "@paradoc/core";
 import { createMemoryResolver } from "@paradoc/resolvers/memory";
 
 const schema = {
-  "$schema": "https://schema.paradoc.dev/2026-09-24.json",
+  "$schema": "https://schema.paradoc.dev/2026-10-02.json",
   "kind": "form",
   "name": "4506-t",
   "version": "1.0.0",
   "title": "Request for Transcript of Tax Return",
   "description": "Request transcripts of previously filed tax returns or related information returns from the IRS. Filed by taxpayers (or authorized representatives) to obtain Return Transcripts, Account Transcripts, Records of Account, Verification of Non-filing, or Wage & Income transcripts.",
   "code": "4506-T",
-  "releaseDate": "2025-04-01",
+  "issuer": "U.S. Internal Revenue Service",
+  "edition": {
+    "key": "2025-04",
+    "label": "Rev. 4-2025",
+    "date": "2025-04"
+  },
   "metadata": {
-    "issuer": "Internal Revenue Service",
-    "domain": "tax",
-    "sourceUrl": "https://www.irs.gov/forms-pubs/about-form-4506-t"
+    "domain": "tax"
   },
   "instructions": {
     "kind": "file",

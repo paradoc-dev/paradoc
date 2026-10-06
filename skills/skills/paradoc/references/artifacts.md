@@ -28,20 +28,42 @@ Every kind accepts these keys.
 
 | Key | Type | Rule |
 |-----|------|------|
-| `$schema` | string | `https://schema.paradoc.dev/2026-09-24.json` for every kind ([schemas.md § Schema version](./schemas.md#schema-version)) |
+| `$schema` | string | `https://schema.paradoc.dev/2026-10-02.json` for every kind ([schemas.md § Schema version](./schemas.md#schema-version)) |
 | `name` | string | Kebab-case, 1 to 128 characters ([schemas.md § Identifier patterns](./schemas.md#identifier-patterns)) |
 | `kind` | enum | `form`, `document`, `checklist`, `bundle` |
 | `version` | string | SemVer 2.0.0: `1.2.3`, `1.3.0-beta.1`, `1.0.0+build.5` |
 | `title` | string | 1 to 200 characters |
 | `description` | string | Up to 2000 characters |
-| `code` | string | Your internal code, 1 to 200 characters |
+| `code` | string | The form number as printed by its issuer (e.g. `W-9`, `ACORD 25`), or a self-issued form's own number. 1 to 200 characters |
 | `language` | string | BCP 47 tag such as `en`, `en-US`, `fr-CA`. Default `en`. |
-| `releaseDate` | string | `YYYY-MM-DD` |
+| `issuer` | string | Organization that issues the form, e.g. `U.S. Internal Revenue Service` |
+| `edition` | object | The issuer's edition this artifact encodes ([Editions](#editions)) |
 | `metadata` | object | Kebab-case keys (up to 100 characters); values are string (up to 500), number, boolean or `null` |
 | `instructions` | ContentRef | Guidance for people ([instructions.md](./instructions.md)) |
 | `agentInstructions` | ContentRef | Guidance for AI agents ([instructions.md](./instructions.md)) |
 
-Bump `version` by SemVer: major for a removed or renamed field, a changed type, or optional becoming required; minor for a new optional field, layer or annex; patch for labels and template fixes.
+### Editions
+
+Set `edition` when the issuer reissues the artifact in editions. Every edition of one artifact keeps the same `name` and has its own `version` line.
+
+| `edition` key | Type | Rule |
+|---------------|------|------|
+| `key` | string | Required. Lowercase letters and digits with single hyphens (`2024-03`, `3b`). Used in coordinates; never changes once published |
+| `label` | string | Required. The issuer's edition text as printed (`Rev. March 2024`). Display only |
+| `date` | string | When the issuer released it: `YYYY`, `YYYY-MM` or `YYYY-MM-DD` |
+| `effectiveFrom` | string | Full ISO date the edition takes effect, only when printed on the form |
+
+```json schema=form
+{
+  "issuer": "U.S. Internal Revenue Service",
+  "code": "W-9",
+  "edition": { "key": "2024-03", "label": "Rev. March 2024", "date": "2024-03" }
+}
+```
+
+A coordinate is `@org/repo/name[/edition][@version]`, for example `@paradoc/irs/w-9/2024-03@1.2.0`: org, repo, artifact, edition, version. An omitted edition is the artifact's current edition (also written `current`); an omitted version is the edition's latest version (also written `latest`). `@org/repo/w-9@1.0.0` is version 1.0.0 of the current edition and fails if absent; it never falls back to another edition. An edition key cannot be `current`, `latest`, `editions`, `tags` or `diff`. The registry URL is the same path with the version as its own segment: `/registry/paradoc/irs/w-9/2024-03/1.2.0`.
+
+Bump `version` by SemVer: major for a removed or renamed field, a changed type, or optional becoming required; minor for a new optional field, layer or annex; patch for labels and template fixes. `version` counts only your own changes, never the issuer's edition.
 
 ## Form
 
@@ -58,7 +80,7 @@ Bump `version` by SemVer: major for a removed or renamed field, a changed type, 
 
 ```json schema=artifact
 {
-  "$schema": "https://schema.paradoc.dev/2026-09-24.json",
+  "$schema": "https://schema.paradoc.dev/2026-10-02.json",
   "name": "rental-application",
   "kind": "form",
   "version": "1.0.0",
@@ -88,7 +110,7 @@ A document takes `layers` and `defaultLayer` and nothing else beyond the base. I
 
 ```json schema=artifact
 {
-  "$schema": "https://schema.paradoc.dev/2026-09-24.json",
+  "$schema": "https://schema.paradoc.dev/2026-10-02.json",
   "name": "privacy-policy",
   "kind": "document",
   "version": "2.1.0",
@@ -117,7 +139,7 @@ A checklist takes `items` (required, may be empty), `layers` and `defaultLayer`.
 
 ```json schema=artifact
 {
-  "$schema": "https://schema.paradoc.dev/2026-09-24.json",
+  "$schema": "https://schema.paradoc.dev/2026-10-02.json",
   "name": "closing-checklist",
   "kind": "checklist",
   "items": [
@@ -147,7 +169,7 @@ A bundle takes `contents` (required, ordered, may be empty) and `defs`. Each con
 |--------|-----------|-----------|
 | `inline` | `artifact` | A full artifact object of any kind, including a nested bundle |
 | `path` | `path` | An artifact file, relative to the bundle file's directory |
-| `registry` | `slug` | `@org/repo/resource` or `@org/repo/resource@version`, in a known namespace ([cli.md § Preconditions](./cli.md#preconditions)) |
+| `registry` | `slug` | A platform registry address, `@org/repo/name`: org, repo and name, three lowercase segments, with no edition or version. It is not a CLI `@ns/name` reference. Optional `edition` (an edition key; omitted means the registry's current edition) and `version` (exact SemVer; omitted means the latest of that edition) |
 
 ### Include conditions
 
@@ -164,7 +186,7 @@ A bundle has no fields of its own, so `fields.x` is an unknown reference. An `in
 
 ```json schema=artifact
 {
-  "$schema": "https://schema.paradoc.dev/2026-09-24.json",
+  "$schema": "https://schema.paradoc.dev/2026-10-02.json",
   "name": "loan-package",
   "kind": "bundle",
   "version": "1.0.0",

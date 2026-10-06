@@ -56,7 +56,7 @@ describe('framework-cli-seam-013 add and generate name TS exports from different
     // exactly the mismatch add.ts:172 cannot produce (it always names the
     // file after artifactName), but generate.ts is fed arbitrary filenames.
     const artifact = {
-      $schema: 'https://schema.paradoc.dev/2026-09-24.json',
+      $schema: 'https://schema.paradoc.dev/2026-10-02.json',
       kind: 'form',
       name: 'w9',
       version: '1.0.0',

@@ -99,7 +99,7 @@ async function create(kind: ArtifactKind, name: string, supplied: ArtifactOption
       { type: 'text', name: 'title', message: 'Title:', initial: defaults.title, validate: (v: string) => v.trim() ? true : 'Title is required' },
       { type: 'text', name: 'slug', message: 'Slug:', initial: defaults.slug, validate: (v: string) => SLUG.test(v.trim()) ? true : 'Use lowercase letters, numbers, and single hyphens' },
       { type: 'text', name: 'description', message: 'Description (optional):', initial: supplied.description ?? '' },
-      { type: 'text', name: 'code', message: 'Code/reference (optional):', initial: supplied.code ?? '' },
+      { type: 'text', name: 'code', message: 'Form number as printed by its issuer (optional):', initial: supplied.code ?? '' },
       { type: 'text', name: 'version', message: 'Version:', initial: defaults.version, validate: (v: string) => semver.valid(v.trim()) ? true : 'Use a valid SemVer version' },
       { type: 'select', name: 'format', message: 'Format:', choices: [{ title: 'json', value: 'json' }, { title: 'yaml', value: 'yaml' }], initial: defaults.format === 'yaml' ? 1 : 0 },
       { type: 'text', name: 'dir', message: `Where would you like to save this ${kind}?`, initial: defaults.dir, validate: (v: string) => v.trim() ? true : 'Directory is required' },
@@ -136,7 +136,7 @@ export function createArtifactCommand(kind: ArtifactKind): Command {
     .option('--slug <slug>', 'Override auto-generated slug')
     .option('--title <title>', 'Human-readable title')
     .option('--description <desc>', 'Description')
-    .option('--code <code>', 'Code/reference')
+    .option('--code <code>', 'Form number as printed by its issuer')
     .option('--artifact-version <version>', 'Version (default: 1.0.0)')
     .option('--dir <path>', 'Custom output directory')
     .option('--dry-run', 'Preview without creating files')

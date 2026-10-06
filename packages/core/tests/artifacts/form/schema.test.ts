@@ -355,7 +355,7 @@ describe('Form', () => {
           expect(result.agentInstructions?.kind).toBe('inline')
         })
 
-        test('creates form with all properties (except releaseDate)', () => {
+        test('creates form with all properties (except edition and issuer)', () => {
           const input: Form = {
             kind: 'form',
             version: '1.0.0',
@@ -542,15 +542,15 @@ describe('Form', () => {
           expect(() => form(input)).toThrow()
         })
 
-        test('throws error when releaseDate has invalid format', () => {
+        test('rejects the removed releaseDate field', () => {
           const input = {
             kind: 'form',
             version: '1.0.0',
             name: 'test',
             title: 'Test',
-            releaseDate: 'invalid-date',
+            releaseDate: '2024-03-01',
           } as any
-          expect(() => form(input)).toThrow()
+          expect(() => form(input)).toThrow(/releaseDate/)
         })
 
         test('throws error when field definition is invalid', () => {
@@ -1077,7 +1077,7 @@ describe('Form', () => {
           expect(result.agentInstructions?.kind).toBe('inline')
         })
 
-        test('builds form with all properties (except releaseDate)', () => {
+        test('builds form with all properties (except edition and issuer)', () => {
           const result = form()
             .name('complete-form')
             .version('1.0.0')
@@ -1268,9 +1268,9 @@ describe('Form', () => {
           expect(() => form().name('invalid@name').version('1.0.0').title('Test').build()).toThrow()
         })
 
-        test('throws error when releaseDate has invalid format', () => {
+        test('throws error when the edition date has an invalid format', () => {
           expect(() =>
-            form().name('test').version('1.0.0').title('Test').releaseDate('invalid-date').build()
+            form().name('test').version('1.0.0').title('Test').edition({ key: 'k', label: 'K', date: 'invalid-date' }).build()
           ).toThrow()
         })
 

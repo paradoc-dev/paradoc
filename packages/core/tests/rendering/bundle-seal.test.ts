@@ -41,8 +41,8 @@ describe('sealing a bundle', () => {
 	/** A minimal TIFF, so a bytes entry declared image/tiff is one. */
 	const tiff = new Uint8Array([0x49, 0x49, 0x2a, 0x00, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00])
 
-	const contract = (name: string, role: string, signer: string) =>
-		form()
+	const contract = (name: string, role: string, signer: string, edition?: { key: string; label: string }) =>
+		(edition ? form().edition(edition) : form())
 			.name(name)
 			.version('1.0.0')
 			.title(name)
@@ -316,6 +316,68 @@ describe('sealing a bundle', () => {
 		expect(failure).toBeInstanceOf(BundleSealError)
 		expect((failure as BundleSealError).problems).toEqual([
 			'content for "first" is the artifact "first" but the bundle declares "other-contract"',
+		])
+	})
+
+	test('refuses an artifact whose edition is not the one the bundle declares', async () => {
+		const declaring: Bundle = {
+			...bundle,
+			contents: [
+				{ type: 'registry', key: 'first', slug: '@acme/forms/first', edition: '2024-03' },
+				bundle.contents[1]!,
+				bundle.contents[2]!,
+			],
+		}
+		const failure = await sealBundle(declaring, {
+			renderers: { 'text/tsx': reactRenderer() },
+			contents: contents({ content: cleanPdf, mimeType: 'application/pdf' }),
+		}).catch((error: unknown) => error)
+
+		expect(failure).toBeInstanceOf(BundleSealError)
+		expect((failure as BundleSealError).problems).toEqual([
+			'content for "first" is "first" edition unstated but the bundle declares edition 2024-03',
+		])
+	})
+
+	test('seals a registry part whose edition is the one the bundle declares', async () => {
+		const declaring: Bundle = {
+			...bundle,
+			contents: [
+				{ type: 'registry', key: 'first', slug: '@acme/forms/first', edition: '2024-03', version: '1.0.0' },
+				bundle.contents[1]!,
+				bundle.contents[2]!,
+			],
+		}
+		const packet = await sealBundle(declaring, {
+			renderers: { 'text/tsx': reactRenderer() },
+			contents: {
+				...contents({ content: cleanPdf, mimeType: 'application/pdf', filename: 'annex.pdf' }),
+				first: contract('first', 'client', 'client-signer', { key: '2024-03', label: 'Rev. March 2024' }),
+			},
+		})
+		expect(packet.parts.map((part) => part.key)).toEqual(['first', 'second', 'annex'])
+	})
+
+	test('refuses a registry part of another edition than the bundle declares', async () => {
+		const declaring: Bundle = {
+			...bundle,
+			contents: [
+				{ type: 'registry', key: 'first', slug: '@acme/forms/first', edition: '2024-03' },
+				bundle.contents[1]!,
+				bundle.contents[2]!,
+			],
+		}
+		const failure = await sealBundle(declaring, {
+			renderers: { 'text/tsx': reactRenderer() },
+			contents: {
+				...contents({ content: cleanPdf, mimeType: 'application/pdf' }),
+				first: contract('first', 'client', 'client-signer', { key: '2026-01', label: 'Rev. January 2026' }),
+			},
+		}).catch((error: unknown) => error)
+
+		expect(failure).toBeInstanceOf(BundleSealError)
+		expect((failure as BundleSealError).problems).toEqual([
+			'content for "first" is "first" edition 2026-01 but the bundle declares edition 2024-03',
 		])
 	})
 

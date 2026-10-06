@@ -5,14 +5,13 @@ import { p } from "@paradoc/core";
 import { createMemoryResolver } from "@paradoc/resolvers/memory";
 
 const schema = {
-  "$schema": "https://schema.paradoc.dev/2026-09-24.json",
+  "$schema": "https://schema.paradoc.dev/2026-10-02.json",
   "kind": "form",
   "name": "ach-credit-authorization",
   "version": "1.0.0",
   "title": "ACH Credit Authorization",
   "description": "Authorization by which a payee (consumer or organization) authorizes a named originator to initiate ACH credit entries to a deposit account at a named financial institution. Supports one-time and recurring credits, fixed or variable amounts, and optional B2B remittance / addenda fields. Used for vendor / accounts-payable, refunds, dividends, insurance claim payouts, government benefits, and royalty disbursements; governed by NACHA Operating Rules.",
   "code": "ACH-CREDIT-AUTH",
-  "releaseDate": "2026-05-01",
   "metadata": {
     "domain": "banking"
   },

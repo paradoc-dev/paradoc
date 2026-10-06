@@ -55,7 +55,7 @@ import { defsDependencyExpressions } from '../../shared/defs-dependencies'
  *   },
  *   contents: [
  *     { type: 'inline', key: 'main', artifact: { kind: 'form', ... } },
- *     { type: 'registry', key: 'optional', slug: '@org/optional', include: 'needsForm' }
+ *     { type: 'registry', key: 'optional', slug: '@org/forms/optional', include: 'needsForm' }
  *   ]
  * }
  *

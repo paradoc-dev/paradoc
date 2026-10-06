@@ -25,7 +25,7 @@ let root: string;
 /** A form artifact declaring one React layer at `path`. */
 function artifact(name: string, path: string): string {
   return JSON.stringify({
-    $schema: "https://schema.paradoc.dev/2026-09-24.json",
+    $schema: "https://schema.paradoc.dev/2026-10-02.json",
     kind: "form",
     name,
     version: "1.0.0",
@@ -179,7 +179,7 @@ describe("pairing a composition with its artifact", () => {
     await write(
       "broken.json",
       JSON.stringify({
-        $schema: "https://schema.paradoc.dev/2026-09-24.json",
+        $schema: "https://schema.paradoc.dev/2026-10-02.json",
         kind: "form",
         name: "broken",
         version: "1.0.0",

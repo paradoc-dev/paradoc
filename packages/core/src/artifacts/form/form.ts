@@ -37,6 +37,7 @@ import type {
 	Formatter,
 	FormData,
 	RuntimeFormJSON,
+	ArtifactEdition,
 } from '@paradoc/types'
 import { createLayerRenderer } from '@paradoc/render'
 import { flattenPdf, locate as locatePlacements } from '@paradoc/render/pdf'
@@ -3099,7 +3100,8 @@ export interface FormBuilderInterface<
 	description(value: string): FormBuilderInterface<TFields, TParties, TAnnexes, TAllowAdditionalAnnexes>
 	code(value: string): FormBuilderInterface<TFields, TParties, TAnnexes, TAllowAdditionalAnnexes>
 	language(value: string): FormBuilderInterface<TFields, TParties, TAnnexes, TAllowAdditionalAnnexes>
-	releaseDate(value: string): FormBuilderInterface<TFields, TParties, TAnnexes, TAllowAdditionalAnnexes>
+	issuer(value: string): FormBuilderInterface<TFields, TParties, TAnnexes, TAllowAdditionalAnnexes>
+	edition(value: ArtifactEdition): FormBuilderInterface<TFields, TParties, TAnnexes, TAllowAdditionalAnnexes>
 	metadata(value: Metadata): FormBuilderInterface<TFields, TParties, TAnnexes, TAllowAdditionalAnnexes>
 	instructions(value: ContentRef): FormBuilderInterface<TFields, TParties, TAnnexes, TAllowAdditionalAnnexes>
 	agentInstructions(value: ContentRef): FormBuilderInterface<TFields, TParties, TAnnexes, TAllowAdditionalAnnexes>
@@ -3202,7 +3204,8 @@ function createFormBuilder<
 		description: undefined,
 		code: undefined,
 		language: undefined,
-		releaseDate: undefined,
+		issuer: undefined,
+		edition: undefined,
 		metadata: {},
 		instructions: undefined,
 		agentInstructions: undefined,
@@ -3226,7 +3229,8 @@ function createFormBuilder<
 			_def.description = parsed.description
 			_def.code = parsed.code
 			_def.language = parsed.language
-			_def.releaseDate = parsed.releaseDate
+			_def.issuer = parsed.issuer
+			_def.edition = parsed.edition
 			_def.metadata = parsed.metadata ? { ...parsed.metadata } : {}
 			_def.instructions = parsed.instructions
 			_def.agentInstructions = parsed.agentInstructions
@@ -3279,8 +3283,13 @@ function createFormBuilder<
 			return builder
 		},
 
-		releaseDate(value: string) {
-			_def.releaseDate = value
+		issuer(value: string) {
+			_def.issuer = value
+			return builder
+		},
+
+		edition(value: ArtifactEdition) {
+			_def.edition = value
 			return builder
 		},
 
