@@ -40,6 +40,8 @@ Each mode has its own permissions, capped by the member's role. Every result fro
 
 The same console page lists the member's connections. Revoke one mode, or the whole connection; the next call is refused. An organization administrator can turn MCP access off per mode for the whole organization.
 
+A refused call returns `isError: true`. Its text starts with the error code, then the message, for example `MCP_MODE_REQUIRED: This MCP connection is granted both test and live mode, …`.
+
 | Error code | Meaning |
 |------------|---------|
 | `MCP_CONNECTION_NOT_GRANTED` | The connection is not set up. The message carries the setup link. |
@@ -67,8 +69,10 @@ The server checks the key with the platform before it opens a session. An API-ke
 | Response | Meaning |
 |----------|---------|
 | `401` with `WWW-Authenticate: Bearer resource_metadata="…"` | No credential, a bad API key, or a token with no organization. OAuth clients start sign-in from this. |
-| `503` | The server could not check the key. Retry later. |
+| `503` | The server could not check the credential. Retry later. |
 | `429` | Rate limit. See [Limits](#limits). |
+| `400` | A JSON-RPC batch (an array body). Send one message per request. |
+| `413` | A request body over 4 MB. |
 
 ## Payload shape
 
@@ -151,7 +155,7 @@ OAuth and API-key connections get the same platform tools. Each call needs the p
 
 A billed tool fails with an insufficient-balance error when the organization's balance is empty.
 
-`extract`, `prefill`, `seal`, `extract_job_submit` and `create_envelope` take an optional `idempotency_key` (1-255 characters). To retry a call that failed or timed out, send the same key with the same arguments: the API returns the first result and does not bill it again. A key reused with different arguments is refused with a 409 conflict (`idempotency_payload_mismatch`), so use a new key for a new call. Execution tools (`extract`, `prefill`, `seal`) remember a key for 24 hours; `extract_job_submit` and `create_envelope` remember it for the life of the job or envelope. Without a key, each call is a new operation. A test-mode call and a live-mode call never share a result, even with the same key.
+`extract`, `prefill`, `seal`, `extract_job_submit`, `create_envelope` and `create_payment` take an optional `idempotency_key` (1-255 characters). To retry a call that failed or timed out, send the same key with the same arguments: the API does not run or bill it again and returns the first result, with two exceptions. A `seal` result over 1 MB is not kept, so its retry is refused with a 409 (`idempotency_uncacheable`); do not retry it. A `create_envelope` retry returns the envelope with every `signing_url` set to `null`; the signers get their links by email. A key reused with different arguments is refused with a 409 conflict (`idempotency_payload_mismatch` for the execution and e-signature tools), so use a new key for a new call. The text of a 409 error names its cause in parentheses, for example `Conflict (idempotency_payload_mismatch): …`. Execution tools (`extract`, `prefill`, `seal`) remember a key for 24 hours; `extract_job_submit`, `create_envelope` and `create_payment` remember it for the life of the job, envelope or payment. Without a key, each call is a new operation. A test-mode call and a live-mode call never share a result, even with the same key.
 
 ### Execution
 
@@ -159,9 +163,9 @@ Every execution tool needs `execution:run`. Reading a stored extraction result w
 
 | Tool | Arguments | Cost | Does |
 |------|-----------|------|------|
-| `describe` | `artifact` | Free | Fields, parties and annexes with types, plus a sample payload. Call it first. |
-| `extract` | `artifact`, `document: { content_base64, mime_type }`, `options?: { confidence_threshold?, validate_extracted? }`, `idempotency_key?` | Per page | Reads a filled PDF or image (PNG, JPEG, WebP; 10 MB max, no data-URI prefix). Returns values with confidence and page provenance. Works on scanned and flattened documents. |
-| `prefill` | `artifact`, `document`, `options?: { confidence_threshold?, include_optional?, required_first? }`, `idempotency_key?` | Extract + fill | Extracts and commits readings above the threshold into a fill. Lower readings come back as suggestions. |
+| `describe` | `artifact` | Free | Fields, parties and annexes with types, plus a sample payload to pass as `data` to `fill`, `render`, `seal` or `create_envelope`. Call it first. |
+| `extract` | `artifact`, `document: { content_base64, mime_type }`, `options?: { confidence_threshold?, validate_extracted? }`, `idempotency_key?` | Per page | Reads a filled PDF or image (PNG, JPEG, WebP; 5 pages and 10 MB max, no data-URI prefix). Returns values with confidence and page provenance. Works on scanned and flattened documents. |
+| `prefill` | `artifact`, `document`, `options?: { confidence_threshold?, include_optional?, required_first? }`, `idempotency_key?` | Extract + fill | Extracts and commits readings above the threshold into a fill. Lower readings come back as suggestions. 5 pages and 10 MB max. |
 | `seal` | `artifact`, `data`, `layer?`, `signers?`, `signatories?`, `idempotency_key?` | Per call | Fills the form and returns the canonical PDF, the signature map and `canonical_pdf_hash`. Creates no envelope. See [sealing.md](./sealing.md). |
 | `extract_job_submit` | `artifact`, `document` (about 18.75 MB, 100 pages max), `options?`, `idempotency_key?` | Per page, on success | Starts async extraction and returns a job id. |
 | `extract_job_get` | `job_id` | Free | Job status, and the `extract` result when complete. |
@@ -171,12 +175,12 @@ Every execution tool needs `execution:run`. Reading a stored extraction result w
 
 | Tool | Arguments | Permission | Cost | Does |
 |------|-----------|------------|------|------|
-| `create_envelope` | `artifact`, `data`, `signers: [{ email, name, client_user_id?, routing_order? }]` (1-20), `title?`, `message?`, `external_id?`, `client_user_id?`, `signer_access_days?` (1-3650), `retention_days?` (30 or more, or `null` to keep forever), `expires_in_days?` (1-365), `reminder_frequency_days?` (1-30), `idempotency_key?` | `esign:manage` | Per call | Seals the artifact and sends signing invitations. Returns the envelope id and each signer's signing URL. Omitted `signer_access_days` and `retention_days` take the organization defaults. Omitted `expires_in_days` means no expiry; omitted `reminder_frequency_days` means no reminders. Data with a missing required field or a failed rule is refused (422) before anything is sent. |
+| `create_envelope` | `artifact`, `data`, `signers: [{ email, name, client_user_id?, routing_order? }]` (1-20), `title?`, `message?`, `external_id?`, `client_user_id?`, `signer_access_days?` (1-3650), `retention_days?` (30 or more, or `null` to keep forever), `expires_in_days?` (1-365), `reminder_frequency_days?` (1-30), `idempotency_key?` | `esign:manage` | Per call | Seals the artifact and sends signing invitations. Returns the envelope id and each signer's signing URL; a retry with the same `idempotency_key` returns `signing_url: null`. Omitted `signer_access_days` and `retention_days` take the organization defaults. Omitted `expires_in_days` means no expiry; omitted `reminder_frequency_days` means no reminders. Data with a missing required field or a failed rule is refused (422) before anything is sent. |
 | `get_envelope` | `envelope_id` | `esign:read` | Free | Status and per-signer state. |
 | `list_envelopes` | `status?` (`draft`, `pending`, `in_progress`, `completed`, `declined`, `voided`, `expired`), `client_user_id?`, `limit?` (1-100), `offset?` | `esign:read` | Free | Envelopes, newest first. |
 | `download_envelope` | `envelope_id` | `esign-content:read` | Free | Links to the signed document and completion certificate, once completed. |
 | `void_envelope` | `envelope_id`, `reason` (1-500 characters) | `esign:manage` | Free | Voids an in-progress envelope and notifies signers. |
-| `remind_envelope` | `envelope_id` | `esign:manage` | Free | Emails every pending signer. |
+| `remind_envelope` | `envelope_id` | `esign:manage` | Free | Emails each signer whose turn to sign has come and who has not signed. On a sequential envelope, later signers are not reminded. |
 | `envelope_audit` | `envelope_id` | `esign-content:read` | Free | Every lifecycle event with actor, timestamp and a tamper-evident hash. |
 
 ### Payments
@@ -184,7 +188,7 @@ Every execution tool needs `execution:run`. Reading a stored extraction result w
 | Tool | Arguments | Permission | Does |
 |------|-----------|------------|------|
 | `connect_get_status` | none | `payment:read` | Stripe Connect status. `ready` must be `true` before `create_payment`. Onboarding is done by a person on the Payments page of the Paradoc console. |
-| `create_payment` | Either `amount_cents` + `currency`, or `artifact` + `data` (the amount comes from the party `payment` in the form). Always `success_url`, `cancel_url`. Optional `connected_account_id` (defaults to the organization's default account), `description`, `external_id`, `client_user_id`, `payer_client_user_id`. | `payment:charge` | Creates a hosted checkout. Returns `checkout_url`. |
+| `create_payment` | Either `amount_cents` + `currency`, or `artifact` + `data` (the amount comes from the party `payment` in the form). Always `success_url`, `cancel_url`. Optional `connected_account_id` (defaults to the organization's default account), `description`, `external_id`, `client_user_id`, `payer_client_user_id`, `idempotency_key`. | `payment:charge` | Creates a hosted checkout. Returns `checkout_url`. |
 | `get_payment` | `payment_id` | `payment:read` | One payment. |
 | `list_payments` | `status?` (`pending`, `succeeded`, `failed`, `partially_refunded`, `refunded`), `created_after?`, `created_before?` (ISO 8601), `q?` (description text), `min_amount_cents?`, `max_amount_cents?`, `connected_account_id?`, `client_user_id?`, `limit?` (1-100), `offset?` | `payment:read` | Payments, newest first. |
 | `refund_payment` | `payment_id` | `payment:refund` | Refunds the remaining amount of a `succeeded` or `partially_refunded` payment. A payment already refunded in full is rejected; read its state with `get_payment`. |
@@ -197,7 +201,8 @@ A `402` from `create_payment` names its cause: no connected Stripe account (star
 |-------|-------|
 | Rate limit per credential | 60 requests to `/mcp` (`POST`, `GET` and `DELETE`) per 60 seconds per API key or OAuth connection |
 | Rate limit per client IP | 600 requests to `/mcp` per 60 seconds, across all credentials from that IP |
-| `extract`, `prefill` document | 10 MB. Larger documents: `extract_job_submit` (about 18.75 MB, 100 pages). |
+| `extract`, `prefill` document | 5 pages and 10 MB. Longer or larger documents: `extract_job_submit` (about 18.75 MB, 100 pages). |
+| Request body | One JSON-RPC message per `POST`, 4 MB max. A batch gets `400`; a larger body gets `413`. |
 
 The session handshake counts against the rate limit. A `GET` that opens the server-to-client stream counts once, when it opens; an open stream is not cut off. A normal handshake and `tools/list` leave room for an active fill loop within the 60-request window. Request 61 with the same credential gets `429`; wait for the 60-second window to reset. Other credentials behind the same IP keep their own budget. For larger workloads, use the npm tools ([ai-tools.md](./ai-tools.md)), the SDK ([sdk.md](./sdk.md)) or the CLI ([cli.md](./cli.md)) locally.
 
