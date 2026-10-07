@@ -2,6 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
 import {
+  DOCS_FILES_WITHOUT_PLATFORM_API,
   filterDocsFiles,
   PLATFORM_API_PAGES,
 } from "@/lib/docs-features";
@@ -41,6 +42,11 @@ const files = [
     data: { title: "Platform Access" },
   },
   {
+    type: "page",
+    path: "guides/registry-versions.mdx",
+    data: { title: "Registry Versions" },
+  },
+  {
     type: "meta",
     path: "guides/meta.json",
     data: {
@@ -48,6 +54,7 @@ const files = [
         "sealing-and-conversion",
         "hosted-sealing-and-conversion",
         "platform-access",
+        "registry-versions",
       ],
     },
   },
@@ -67,6 +74,26 @@ describe("docs feature flags", () => {
 
   test("includes platform API pages and navigation when enabled", () => {
     expect(filterDocsFiles(files, true)).toEqual(files);
+  });
+});
+
+describe("gated-off content glob", () => {
+  test("excludes every platform API page and keeps every other page", () => {
+    for (const page of PLATFORM_API_PAGES) {
+      expect(path.matchesGlob(page, DOCS_FILES_WITHOUT_PLATFORM_API), page).toBe(false);
+    }
+    const ungated = contentPages().filter(
+      (file) => !PLATFORM_API_PAGES.includes(file as typeof PLATFORM_API_PAGES[number]),
+    );
+    expect(ungated).toContain("guides/sealing-and-conversion.mdx");
+    for (const page of ungated) {
+      expect(path.matchesGlob(page, DOCS_FILES_WITHOUT_PLATFORM_API), page).toBe(true);
+    }
+  });
+
+  test("is the glob source.config.ts compiles when the pages are gated off", () => {
+    const config = readFileSync(path.resolve(__dirname, "../source.config.ts"), "utf8");
+    expect(config).toMatch(/:\s*\[DOCS_FILES_WITHOUT_PLATFORM_API\]/);
   });
 });
 

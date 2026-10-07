@@ -1,0 +1,196 @@
+---
+title: Registry Versions
+description: Deprecate, yank, or delete a version you published to the Paradoc Platform registry
+---
+
+When you publish an artifact to the Paradoc Platform registry, each publish
+creates a version, such as `1.2.0`. Other organizations can then use that
+version: run it through the API, or pin it in their own bundles and forms.
+
+A published version never changes. To take one out of use, you have three
+tools. Each one does less damage to the people who rely on the version than
+the next.
+
+| Action | What it does | Comparable to | Reversible |
+| --- | --- | --- | --- |
+| Deprecate | Keeps the version fully available and shows a message to callers. | `npm deprecate` | Yes, undeprecate |
+| Yank | Stops new use of the version. Callers that name it exactly still get it. | `cargo yank`, PyPI yank | Yes, unyank |
+| Delete | Removes the content. Only a tombstone that reserves the version number remains. | None | No |
+
+All the endpoints below take the version's coordinate: your organization,
+repository, artifact slug, edition key (or `current`), and an exact version.
+They never act on `latest`.
+
+## Deprecate
+
+Deprecate a version to tell callers to move off it, for example because a newer
+edition exists. A message is required, from 1 to 1024 characters.
+
+```http
+POST /v1/registry/{org}/{repo}/{slug}/{edition}/{version}/deprecate
+
+{ "message": "Use the 2025 edition." }
+```
+
+The version stays live. If it was `latest`, it is still `latest`. It can still
+be pinned, forked, and promoted. Callers that resolve it get the message as
+`deprecated_message`.
+
+Deprecating it again replaces the message. To clear the deprecation, call
+`POST .../{version}/undeprecate`.
+
+## Yank
+
+Yank a version when nobody should start using it, but the people who already
+use it must not break. For example, the instructions name the wrong tax year.
+The message is optional, and callers get it as `yanked_message`.
+
+```http
+POST /v1/registry/{org}/{repo}/{slug}/{edition}/{version}/yank
+
+{ "message": "Wrong tax year in the instructions." }
+```
+
+After a yank:
+
+- `latest` moves to the newest version that is not yanked or deleted.
+- New pins are refused: a bundle that pins the version cannot be published,
+  and a form binding cannot be created on it. The error is a `409` with
+  `version_yanked`.
+- The version cannot be forked or promoted.
+- Anyone who names the exact version still gets it, with `yanked: true` and the
+  `yanked_message`.
+
+A yank does not withdraw the content from consumers that already pinned it. To
+remove the content, delete the version.
+
+To reverse a yank, call `POST .../{version}/unyank`. The version can then be
+`latest` and pinned again.
+
+## Delete
+
+Delete a version when its content must not be served at all, for example when
+it contains personal data by mistake. Delete runs only from a signed-in
+console session, not with an API key (see [Who can do what](#who-can-do-what)).
+
+```http
+DELETE /v1/registry/{org}/{repo}/{slug}/{edition}/{version}
+
+{ "reason": "leaked_data" }
+```
+
+The registry removes the version's files, metadata, and release notes. A
+tombstone keeps the version number, so it can never be published again with
+different content. A delete cannot be undone.
+
+A delete removes the registry's copy only. It does not reach copies that
+others already downloaded.
+
+### When a delete needs a reason
+
+You can delete without a reason only when nobody outside your organization
+relied on the version. Both of these must be true:
+
+- No other organization pinned the version.
+- The version was published less than 72 hours ago, or no other organization
+  and no anonymous caller ever used it.
+
+In all other cases, name a `reason`:
+
+| Reason | Use it for |
+| --- | --- |
+| `leaked_data` | The content holds personal or confidential data. |
+| `security` | The content creates a security problem. |
+| `legal` | A legal request requires removal. |
+| `other` | Anything else. Also send `reason_detail` (1 to 1024 characters). |
+
+A delete without a needed reason is refused with a `409` and
+`version_not_deletable`.
+
+### Other limits
+
+- If your own organization pinned the version, the delete is refused with a
+  `409` and `version_pinned`. Send `"force": true` to delete it anyway. Your
+  own pins then stop resolving.
+- The last live version of the artifact's current edition cannot be deleted or
+  yanked (`409`, `current_edition_last_live_version`). Publish a new version or
+  make another edition current first.
+- `reason`, `reason_detail`, and `force` can go in the request body or the
+  query string, for clients that cannot send a body with `DELETE`. When both
+  have a value, the body wins.
+
+### Preview a delete
+
+To learn what a delete would need before you send it:
+
+```http
+GET /v1/registry/{org}/{repo}/{slug}/{edition}/{version}/deletion-preview
+```
+
+```json
+{
+  "deletable": true,
+  "requires_reason": true,
+  "within_window": false,
+  "used_by_other_organizations": 3,
+  "ever_pinned_by_other_organizations": 1,
+  "pinned_by_this_organization": false,
+  "blocked_by": []
+}
+```
+
+The preview gives counts only. It never names the other organizations.
+Anonymous callers count as one organization. `blocked_by` lists
+`current_edition_last_live_version` or `version_pinned` when they apply.
+`force` lifts `version_pinned` only.
+
+### After a delete
+
+| Request | Result |
+| --- | --- |
+| Resolve the exact version, read its manifest, or download its files | `410 Gone`, `version_deleted` |
+| Deprecate, yank, or delete it again | `410 Gone` |
+| Public version lists | The version is hidden. |
+| Your organization's version lists and `GET .../{version}` | The tombstone, with `deleted_at`, `deleted_reason`, and `deleted_note` |
+
+## Who can do what
+
+| Action | Roles | Permission | API keys |
+| --- | --- | --- | --- |
+| Deprecate, undeprecate, yank, unyank | Editor, admin | `artifact:retract` | Yes |
+| Delete, deletion preview | Admin | `artifact:delete` | No |
+
+Delete and its preview need a signed-in console session. No API key can carry
+`artifact:delete`, so the API-key surface does not list these two endpoints.
+See [Platform access](/guides/platform-access) for roles and API keys.
+
+## What callers see
+
+When you resolve a published version through the execution API, the response
+says which version you got and its state. `POST /v1/exec/describe` returns:
+
+| Field | Meaning |
+| --- | --- |
+| `version_id` | The id of the version that resolved. |
+| `version` | The version number. |
+| `yanked` | `true` when the publisher yanked the version. |
+| `yanked_message` | The publisher's yank message, or `null`. |
+| `deprecated_message` | The publisher's deprecation message, or `null` when the version is not deprecated. |
+
+`POST /v1/exec/extract` returns the same values in its `metadata`, named
+`artifact_version_id`, `artifact_version`, `artifact_yanked`,
+`artifact_yanked_message`, and `artifact_deprecated_message`. These fields
+appear only for registry sources.
+
+A source without a version resolves `latest`, which is never a yanked version.
+A source that names a yanked version exactly still resolves, with `yanked: true`.
+A deleted version returns `410 Gone` with `version_deleted`.
+
+## Webhook events
+
+Each change publishes an event: `artifact.deprecated`, `artifact.undeprecated`,
+`artifact.yanked`, `artifact.unyanked`, and `artifact.deleted`. The payload
+carries the version's state, slug, and edition key, but not its metadata or
+release notes. `artifact.deleted` also carries `deleted_reason` and
+`deleted_note`. A call that changes nothing, such as yanking a version that is
+already yanked, returns the version and publishes no event.

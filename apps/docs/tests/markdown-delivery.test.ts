@@ -8,6 +8,7 @@ import {
   parseContentPath,
 } from "@/lib/content-negotiation";
 import { createDocsHandler } from "@/lib/docs-delivery";
+import { PLATFORM_API_PAGES } from "@/lib/docs-features";
 
 describe("Accept negotiation", () => {
   test.each([
@@ -277,7 +278,7 @@ describe.skipIf(!docsUrl)("built documentation delivery", () => {
   });
 
   test("keeps unpublished pages hidden in every representation", async () => {
-    for (const slug of ["guides/platform-access", "guides/hosted-sealing-and-conversion"]) {
+    for (const slug of PLATFORM_API_PAGES.map((page) => page.replace(/\.mdx$/, ""))) {
       const responses = await Promise.all([
         fetch(new URL(`/${slug}.md`, docsUrl)),
         fetch(new URL(`/${slug}/`, docsUrl), { headers: { Accept: "text/markdown" } }),

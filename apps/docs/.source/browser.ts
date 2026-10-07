@@ -14,7 +14,7 @@ const create = browser<typeof Config, import("fumadocs-mdx/runtime/types").Inter
   }
 }>();
 const browserCollections = {
-  docs: create.doc("docs", import.meta.glob(["./**/!(hosted-sealing-and-conversion|platform-access).{md,mdx}"], {
+  docs: create.doc("docs", import.meta.glob(["./**/!(hosted-sealing-and-conversion|platform-access|registry-versions).{md,mdx}"], {
     "base": "./../content/docs",
     "query": "?collection=docs",
     "eager": false

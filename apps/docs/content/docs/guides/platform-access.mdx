@@ -30,6 +30,16 @@ for later reads of persisted extraction content. An extraction-job read without
 that permission returns operational fields, not stored values, document bytes,
 or access-bearing URLs.
 
+Published registry versions have their own permissions:
+
+| Permission | Roles | Allows |
+| --- | --- | --- |
+| `artifact:publish` | Editor, admin | Publish a version or edition, and fork an edition. |
+| `artifact:retract` | Editor, admin | Deprecate, undeprecate, yank, and unyank a published version. |
+| `artifact:delete` | Admin | Delete a published version and preview the delete. Needs a signed-in console session; no API key can carry it. |
+
+See [Registry versions](/guides/registry-versions) for what each action does.
+
 Ownership does not promote a viewer to document access. There are no custom
 roles, per-member grants, or separate certificate permissions.
 
@@ -39,7 +49,8 @@ API keys carry the permissions selected when they are issued or changed. The
 member managing a key can select only API-key-eligible permissions that they
 currently hold. For example, a status-only key can carry `esign:read`, while
 an integration that archives completed agreements also needs
-`esign-content:read`.
+`esign-content:read`. A key can carry `artifact:retract`, but never
+`artifact:delete`.
 
 An issued key is an organization credential, not a continuously delegated
 member credential. It continues to work if its issuer changes role or leaves

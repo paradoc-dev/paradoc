@@ -8,6 +8,7 @@ import {
   stringifyMdxComponent,
 } from "./src/lib/markdown-components";
 import { remarkSchemaVersion } from './src/lib/schema-version';
+import { DOCS_FILES_WITHOUT_PLATFORM_API } from "./src/lib/docs-features";
 
 export const docs = defineDocs({
   dir: "content/docs",
@@ -15,7 +16,7 @@ export const docs = defineDocs({
     files:
       process.env.PARADOC_DOCS_PLATFORM_API === "true"
         ? ["**/*.{md,mdx}"]
-        : ["**/!(hosted-sealing-and-conversion|platform-access).{md,mdx}"],
+        : [DOCS_FILES_WITHOUT_PLATFORM_API],
     schema: pageSchema.extend({
       ogTitle: z.string().optional(),
       ogDescription: z.string().optional(),

@@ -151,6 +151,8 @@ These act on the session's organization through the Paradoc platform API. The ar
 
 A registry coordinate resolves in the call's mode. A test session never falls back to a live artifact. To test with a live published version, add `"source_mode": "live"` to the registry source. The version is read-only, and the call and its records stay in test mode. To change a live artifact from test mode, fork it into a test repo.
 
+A registry source without a version resolves `latest`, the newest version that its publisher has not yanked or deleted. A source that names a version exactly resolves it even when yanked. `describe` returns the resolved `version_id` and `version`, plus `yanked`, `yanked_message` and `deprecated_message`; `extract` returns the same in `metadata` as `artifact_version_id`, `artifact_version`, `artifact_yanked`, `artifact_yanked_message` and `artifact_deprecated_message`. When `yanked` is `true` or `deprecated_message` is set, tell the user and suggest a newer version. A deleted version fails with `Gone (version_deleted)`; a retry will not bring it back.
+
 OAuth and API-key connections get the same platform tools. Each call needs the permission in the tables below: an API key must hold it, and an OAuth connection must be granted it for the call's mode.
 
 A billed tool fails with an insufficient-balance error when the organization's balance is empty.
