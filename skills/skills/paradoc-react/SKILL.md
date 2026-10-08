@@ -10,7 +10,7 @@ description: >
   filling a PDF template, or signing after the seal, use the paradoc skill.
 metadata:
   author: paradoc
-  version: "0.6.0"
+  version: "0.7.0"
   tags: paradoc, react, composition, pdf, pagination, registry, seal
   license: MIT
 allowed-tools: "Bash(npx:*) Bash(node:*) Bash(pnpm:*) Bash(paradoc:*) Read Write Edit Glob Grep"

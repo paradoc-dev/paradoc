@@ -1,6 +1,6 @@
 {
   "name": "@paradoc/sessions",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "description": "Deterministic form-completion session engine for Paradoc artifacts. Event-sourced command/view core with storage-agnostic persistence: you persist and rehydrate the event log yourself.",
   "type": "module",
   "main": "./dist/index.js",

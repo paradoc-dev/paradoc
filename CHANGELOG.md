@@ -4,18 +4,65 @@ All notable changes to Paradoc. Packages are versioned in lockstep.
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-10-08
+
+Paradoc 0.7 records who issued a form and which edition an artifact encodes, and lets bundles address registry artifacts by edition and version. It also adds PDF digital-signature helpers and per-overlay fonts to the renderer.
+
+### Highlights
+
+- Artifacts carry an optional `issuer` and `edition` (`key`, `label`, `date`, `effectiveFrom`), and `code` is the form number as the issuer prints it.
+- Registry coordinates take the form `@org/repo/name[/edition][@version]`, with helpers to parse and format them.
+- `@paradoc/render/pdf` can prepare, embed and read a PDF digital signature.
+- PDF text overlays can each use their own font, and `pdfFontMetrics()` reports whether a font can draw a string and how wide it is.
+- `paradoc migrate` moves artifacts to schema `2026-10-02`.
+
 ### Breaking changes
 
-- Artifact schema `2026-10-02` removes `releaseDate`. Use the new optional `issuer` and `edition` (`key`, `label`, `date`, `effectiveFrom`) to record who issued a form and which edition it encodes. `code` is now the form number as printed by its issuer.
-- A registry bundle item's `slug` is only the address `@org/repo/name`. Edition and version move to the new `edition` and `version` fields. The coordinate form is `@org/repo/name[/edition][@version]`, where `current` names the current edition and `latest` the latest version. Edition keys cannot be `current`, `latest`, `editions`, `tags` or `diff`.
-- The builders drop `.releaseDate()` for `.issuer()` and `.edition()`, and `.registry(key, coordinate, include?)` takes a full three-segment coordinate.
-- `paradoc migrate` moves artifacts from `2026-09-24` to `2026-10-02`: it removes `releaseDate` and moves a slug's `@version` into `version`.
+#### Schemas and artifacts
+
+- Schema `2026-10-02` removes `releaseDate`. Record the issuer and edition with `issuer` and `edition` instead.
+- A registry bundle item's `slug` is only the address `@org/repo/name`. Edition and version move to the new `edition` and `version` fields. Edition keys cannot be `current`, `latest`, `editions`, `tags` or `diff`.
+- The hosted `2026-09-24` schemas are removed from `schema.paradoc.dev`. Run `paradoc migrate` to move files to `2026-10-02`.
+
+#### Core and SDK
+
+- The builders drop `.releaseDate()` for `.issuer()` and `.edition()`. `.registry(key, coordinate, include?)` takes a full three-segment coordinate and throws a `TypeError` on any other value.
+
+#### Essentials
+
+- Each form's `spec` has a top-level `issuer` instead of `metadata.issuer`, and `metadata.sourceUrl` is removed.
+
+### Upgrading from 0.6
+
+1. Run `paradoc migrate <file-or-directory> --dry-run`, review the changes, then rerun without `--dry-run`. The step removes `releaseDate` and moves a slug's `@version` into `version`.
+2. Correct by hand any registry slug that is not `@org/repo/name[@version]`, such as `@paradoc/essentials/tax/w-9@1.0.0`. The migration stops on it.
+3. Replace `.releaseDate()` with `.issuer()` and `.edition()`, and pass full `@org/repo/name` coordinates to `.registry()`.
+4. Read `issuer` from an essentials form's `spec` instead of `spec.metadata.issuer`.
 
 ### Other changes
 
+#### Schemas and types
+
+- `@paradoc/schemas` exports `parseArtifactCoordinate`, `formatArtifactCoordinate`, `ArtifactCoordinateSchema`, the edition and version selector schemas, and the reserved edition keys. `@paradoc/types` exports `ArtifactEdition`.
+
+#### Core
+
+- `sealBundle` refuses a part whose edition differs from the edition its bundle item declares.
+
+#### Render
+
+- `preparePdfSignature`, `signedBytes`, `embedPdfSignature` and `readPdfSignature` sign a PDF with a container from any signing service.
+- A text overlay takes its own `font`, and `pdfFontMetrics(font)` returns `canDraw` and `width`.
+- Rendering on a page that an earlier render drew on keeps the earlier fonts and images.
+
 #### CLI
 
+- `paradoc show` prints the issuer and edition, and shows registry bundle items as full coordinates. `paradoc new --code` sets the issuer's form number.
 - The CLI sends all telemetry to `telemetry.paradoc.dev`. Public-registry installs send a `directory.installed` event in the same batch, and nothing goes to `tasks.paradoc.dev`. `PARADOC_TELEMETRY_URL` points the CLI at another telemetry origin, such as `https://telemetry-dev.paradoc.dev`.
+
+#### AI tools
+
+- `inspect_artifact` returns the artifact's issuer and edition.
 
 ## [0.6.1] - 2026-09-28
 

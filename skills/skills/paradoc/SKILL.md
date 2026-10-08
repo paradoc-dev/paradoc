@@ -11,7 +11,7 @@ description: >
   React, use paradoc-react.
 metadata:
   author: paradoc
-  version: "0.6.0"
+  version: "0.7.0"
   tags: paradoc, sdk, cli, schemas, ai-tools, mcp, forms, pdf, signing, rendering
   license: MIT
 allowed-tools: "Bash(npx:*) Bash(node:*) Read Write Edit Glob Grep"

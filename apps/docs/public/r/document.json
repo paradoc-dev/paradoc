@@ -5,8 +5,8 @@
   "title": "Document",
   "description": "Binds one form artifact and its data to the components beneath it. The only component that knows how the artifact is loaded.",
   "dependencies": [
-    "@paradoc/react@^0.6.1",
-    "@paradoc/types@^0.6.1"
+    "@paradoc/react@^0.7.0",
+    "@paradoc/types@^0.7.0"
   ],
   "registryDependencies": [],
   "files": [
