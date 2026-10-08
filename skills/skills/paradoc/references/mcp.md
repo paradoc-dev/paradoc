@@ -132,7 +132,8 @@ Result keys are snake_case (`display_name`, `installs_total`, `artifact_count`).
 | Argument | Value |
 |----------|-------|
 | `registry_id`, `artifact_name` | From a registry tool. The registry must be verified. |
-| `data` | The payload you gave `fill`. |
+| `data` | The payload you gave `fill`. Data with no values is refused (`errors` on `data`) unless `blank` is `true`. |
+| `blank?` | `true` renders the form with no values, as a blank copy. Default `false`. |
 | `layer?` | Layer key. Defaults to `defaultLayer`, then the first layer. |
 | `output_mode?` | `"url"` (default): a short download link that expires in 7 days. `"inline"`: the content in the response, base64 for binary output. Use `"inline"` for text or markdown shown in chat. |
 

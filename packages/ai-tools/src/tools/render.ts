@@ -13,6 +13,30 @@ function selectedLayer(artifact: Record<string, unknown>, requested: string | un
 	return { key, mime_type: typeof layer?.mimeType === 'string' ? layer.mimeType : undefined, kind: typeof layer?.kind === 'string' ? layer.kind : undefined }
 }
 
+function hasValues(value: unknown): boolean {
+	if (value === null || value === undefined) return false
+	if (Array.isArray(value)) return value.some(hasValues)
+	if (typeof value === 'object') return Object.values(value).some(hasValues)
+	return value !== ''
+}
+
+/**
+ * A form or checklist render with no values produces a blank file that looks
+ * like success. When data was lost on the way (a model sent null, or a schema
+ * layer closed the object), that hides the loss, so the caller must ask for a
+ * blank copy explicitly.
+ */
+function missingData(artifact_kind: 'form' | 'checklist'): RenderOutput {
+	return {
+		success: false,
+		artifact_kind,
+		error: {
+			code: 'missing_data',
+			message: `No values to render: data is missing or empty. Pass the ${artifact_kind}'s values in data (for example the data from fill), or set blank to true for a blank copy.`,
+		},
+	}
+}
+
 async function renderer() {
 	const module = await import('@paradoc/render')
 	return module.createLayerRenderer()
@@ -64,6 +88,7 @@ export async function executeRender(
 		const resolver = makeResolver(base_url, config)
 
 		if (isForm(artifact)) {
+			if (!normalized.blank && !hasValues(normalized.data)) return missingData('form')
 			const instance = loadFromObject<'form'>(artifact, { resolver })
 			const result = instance.safeFill(asFormPayload(normalized.data) as never, contextOptions(normalized.evaluation_context))
 			if (!result.success) return { success: false, artifact_kind: 'form', errors: validationErrors(result.error), error: errorFromUnknown(result.error, 'validation_error') }
@@ -78,6 +103,7 @@ export async function executeRender(
 		}
 
 		if (isChecklist(artifact)) {
+			if (!normalized.blank && !hasValues(normalized.data)) return missingData('checklist')
 			const instance = loadFromObject<'checklist'>(artifact, { resolver })
 			const result = instance.safeFill(asChecklistPayload(normalized.data) as never, contextOptions(normalized.evaluation_context))
 			if (!result.success) return { success: false, artifact_kind: 'checklist', errors: validationErrors(result.error), error: errorFromUnknown(result.error, 'validation_error') }

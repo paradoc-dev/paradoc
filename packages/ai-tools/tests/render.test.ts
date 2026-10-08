@@ -183,8 +183,65 @@ describe('executeRender', () => {
       const result = await executeRender({
         source: 'artifact' as const,
         artifact: textForm,
-        data: { fields: {} },
+        data: { fields: { email: 'jane@example.com' } },
       })
+
+      expect(result.success).toBe(true)
+      expect(result.content).toContain('jane@example.com')
+    })
+  })
+
+  describe('data with no values', () => {
+    // Lost data (a model sent null, or a schema layer closed the object) used
+    // to render a blank file reported as success.
+    it.each([
+      ['missing', {}],
+      ['null', { data: null }],
+      ['an empty object', { data: {} }],
+      ['empty sections', { data: { fields: {}, parties: {}, annexes: {} } }],
+      ['only empty strings', { data: { fields: { name: '', email: '' } } }],
+    ])('refuses a form render when data is %s', async (_label, extra) => {
+      const result = await executeRender({ source: 'artifact' as const, artifact: textForm, ...extra } as never)
+
+      expect(result.success).toBe(false)
+      expect(result.artifact_kind).toBe('form')
+      expect(result.error?.code).toBe('missing_data')
+      expect(result.content).toBeUndefined()
+    })
+
+    it('refuses a checklist render with no values', async () => {
+      const checklist = {
+        kind: 'checklist' as const,
+        name: 'onboarding',
+        items: [{ id: 'identity', title: 'Identity reviewed', status: { kind: 'boolean' as const } }],
+        layers: { text: { kind: 'inline' as const, mimeType: 'text/plain', text: '{{items.identity}}' } },
+        defaultLayer: 'text',
+      }
+
+      const result = await executeRender({ source: 'artifact' as const, artifact: checklist, data: {} })
+
+      expect(result.success).toBe(false)
+      expect(result.error?.code).toBe('missing_data')
+      // The same checklist with a value renders.
+      const filled = await executeRender({ source: 'artifact' as const, artifact: checklist, data: { identity: true } })
+      expect(filled.success).toBe(true)
+    })
+
+    it('renders a blank copy when blank is true', async () => {
+      const result = await executeRender({ source: 'artifact' as const, artifact: textForm, blank: true })
+
+      expect(result.success).toBe(true)
+      expect(result.content).toContain('# Hello')
+    })
+
+    it('counts false and 0 as values', async () => {
+      const form = {
+        ...textForm,
+        fields: { agreed: { type: 'boolean', label: 'Agreed' } },
+        layers: { markdown: { kind: 'inline' as const, mimeType: 'text/markdown', text: 'Agreed: {{fields.agreed}}' } },
+      }
+
+      const result = await executeRender({ source: 'artifact' as const, artifact: form, data: { fields: { agreed: false } } })
 
       expect(result.success).toBe(true)
     })

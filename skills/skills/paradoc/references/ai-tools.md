@@ -34,7 +34,7 @@ Every adapter wraps `@paradoc/ai-tools`, so the tool names, inputs and outputs a
 | `fill` | Start a form or checklist draft | `data`, `evaluation_context?` | `executeFill` |
 | `get_fill_state` | Progress, open targets, rules, next target | `data`, `evaluation_context?`, `include_optional?` | `executeGetFillState` |
 | `update_fill` | Merge, clear or reset values in a draft | `data`, `patch?`, `clear?`, `reset?`, `evaluation_context?` | `executeUpdateFill` |
-| `render` | Render a form, document or checklist | `data?`, `layer?`, `evaluation_context?`, `presentation?: { max_bytes?, include_content? }` | `executeRender` |
+| `render` | Render a form, document or checklist | `data?`, `blank?`, `layer?`, `evaluation_context?`, `presentation?: { max_bytes?, include_content? }` | `executeRender` |
 | `extract` | Read a filled PDF form back into data | `pdf` (base64) or `pdf_url`, `layer?` | `executeExtract` |
 
 `get_registry` and `get_artifact` take `registry_url`. Every other tool takes a source.
@@ -110,7 +110,8 @@ const second = await executeUpdateFill({
 })
 // { accepted: true, complete: true, data: { …, parties: { tenant: { name: 'Jane Smith', id: 'tenant-0' } } } }
 
-// 4. Render. A draft renders whether or not it is complete.
+// 4. Render. A draft renders whether or not it is complete, but a form or
+//    checklist with no values is refused (missing_data) unless blank: true.
 const doc = await executeRender({ ...source, data: second.data, layer: 'markdown', evaluation_context: second.evaluation_context })
 // { success: true, encoding: 'utf-8', mime_type: 'text/markdown', content: '# Pet Addendum…' }
 ```

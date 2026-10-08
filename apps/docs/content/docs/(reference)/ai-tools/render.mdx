@@ -7,7 +7,7 @@ ogDescription: Render a Paradoc form, document, or checklist to text, PDF, or DO
 
 Renders a form, document, or checklist through one of its layers. The tool validates the artifact, fills forms and checklists with `data`, and renders with the layer's renderer: text layers (`text/plain`, `text/markdown`, `text/html`), PDF, and DOCX. Output is always inline: text as UTF-8, binary as base64.
 
-A form or checklist draft does not need to be complete to render. Bundles are not supported.
+A form or checklist draft does not need to be complete to render, but it needs at least one value. With `data` missing, null, or holding no values, the render is refused with `missing_data`, so data lost on the way never becomes a blank file reported as success. Set `blank: true` to render a blank copy. Bundles are not supported.
 
 ## Input
 
@@ -15,7 +15,8 @@ Takes a [source](/ai-tools#sources) plus:
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `data` | `object` | No | Form or checklist payload, usually `data` from [`fill`](/ai-tools/fill) or [`update_fill`](/ai-tools/update-fill). Documents need none. |
+| `data` | `object` | No | Form or checklist payload, usually `data` from [`fill`](/ai-tools/fill) or [`update_fill`](/ai-tools/update-fill). Documents need none. A form or checklist needs at least one value unless `blank` is `true`. |
+| `blank` | `boolean` | No | Render a form or checklist with no values, as a blank copy. Default `false`. |
 | `evaluation_context` | `object` | No | The draft's `evaluation_context` |
 | `layer` | `string` | No | Layer key. Default: the artifact's `defaultLayer`, then its first layer. |
 | `presentation.max_bytes` | `integer` | No | Cut `content` to this many bytes. Base64 is cut at a whole 4-character group so it still decodes. |
@@ -36,7 +37,7 @@ Takes a [source](/ai-tools#sources) plus:
 | `truncated` | `boolean` | `true` when `content` was cut or left out |
 | `validation_issues` | `{ message, path? }[]` | Schema issues when the artifact is invalid |
 | `errors` | [`ToolError[]`](/ai-tools#errors) | Rejected `data` values |
-| `error` | [`ToolError`](/ai-tools#errors) | Why the render failed, such as `invalid_artifact`, `missing_layer`, or `unsupported_artifact` |
+| `error` | [`ToolError`](/ai-tools#errors) | Why the render failed, such as `invalid_artifact`, `missing_layer`, `missing_data`, or `unsupported_artifact` |
 
 ## Direct usage
 

@@ -160,7 +160,8 @@ export const UpdateFillInputSchema = withSourceFields({
 export type UpdateFillInput = z.infer<typeof UpdateFillInputSchema>
 
 export const RenderInputSchema = withSourceFields({
-	data: FillDataSchema.optional().describe('Form or checklist payload; documents do not require data'),
+	data: FillDataSchema.nullable().optional().describe('Form or checklist payload with the values to render; documents do not require data. A form or checklist with no values is refused unless blank is true'),
+	blank: z.boolean().optional().default(false).describe('Render a form or checklist with no values, as a blank copy. Without it, missing or empty data is refused'),
 	evaluation_context: JsonObjectSchema.optional(),
 	layer: z.string().optional().describe('Layer key; defaults to the artifact default layer'),
 	presentation: z
