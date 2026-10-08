@@ -5,6 +5,9 @@
  */
 export const MOVED_PAGES: ReadonlyArray<readonly [from: string, to: string]> = [
   ["/ai/ai-tools", "/ai/other-frameworks"],
+  ["/ai/ai-sdk", "/ai/quickstart"],
+  ["/ai/tanstack-ai", "/ai/quickstart"],
+  ["/ai/mastra", "/ai/quickstart"],
   ["/ai/tools", "/ai-tools"],
   ["/skill", "/ai/skills"],
   ["/cli/registries", "/concepts/registries"],

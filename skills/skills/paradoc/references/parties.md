@@ -185,7 +185,7 @@ A role key at the top level of the payload is rejected.
 
 | Role `max` | Value |
 |------------|-------|
-| `1` (default) | One object. An array fails with `Party value must be an object.` |
+| `1` (default) | One object. An array fails with `Role "tenant" takes one party object, not an array (max=1).` |
 | `> 1` | An array, even for one party. An object fails with `Role "tenant" expects an array of parties (max=4).` |
 
 Each party is a person or an organization. The type is inferred from its keys:

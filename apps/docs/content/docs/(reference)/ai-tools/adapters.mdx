@@ -1,0 +1,101 @@
+---
+title: Adapters
+description: What the Vercel AI SDK, TanStack AI, and Mastra adapters export
+ogTitle: Paradoc AI adapters
+ogDescription: Exports, peer dependencies, and types of @paradoc/ai-sdk, @paradoc/tanstack-ai, and @paradoc/mastra
+---
+
+Each adapter wraps [`@paradoc/ai-tools`](/ai-tools/api) in the tool type of one framework. The tools, their inputs and outputs, and the configuration are the same in every adapter. To start, see the [Quickstart](/ai/quickstart).
+
+| Package | Framework | Peer dependencies | Node.js |
+|---|---|---|---|
+| `@paradoc/ai-sdk` | Vercel AI SDK 7 | `ai` ^7.0.94, `zod` ^4.1.12 | 22 or newer |
+| `@paradoc/tanstack-ai` | TanStack AI | `@tanstack/ai` 0.53.0 (exact), `zod` ^4.1.12 | 22 or newer |
+| `@paradoc/mastra` | Mastra | `@mastra/core` ^1.64.0, `zod` ^4.1.12 | 22.13 or newer |
+
+## Common exports
+
+Every adapter exports:
+
+| Export | Description |
+|---|---|
+| `paradocTools(config?)` | All ten tools. The shape depends on the framework (see below). |
+| One factory per tool | `getRegistry`, `getArtifact`, `inspectArtifact`, `validateArtifact`, `validateInput`, `fill`, `getFillState`, `updateFill`, `render`, `extract`. Each takes the same optional config. |
+| `operationNames` | The ten tool names, in order |
+| `createToolExecutionContext(options?)` | A cache and abort signal for one request. See [Request context](/ai-tools/api#request-context). |
+| Types | `ParadocToolsConfig`, and the input and output type of every tool, such as `FillInput`, `FillOutput`, `RenderOutput`, `FillTarget`, and `FillItemState` |
+
+Every factory is also the default export of its own subpath, such as `@paradoc/ai-sdk/get-fill-state`. A subpath import loads one tool without the others.
+
+| Tool | Factory | Subpath |
+|---|---|---|
+| [`get_registry`](/ai-tools/get-registry) | `getRegistry()` | `/get-registry` |
+| [`get_artifact`](/ai-tools/get-artifact) | `getArtifact()` | `/get-artifact` |
+| [`inspect_artifact`](/ai-tools/inspect-artifact) | `inspectArtifact()` | `/inspect-artifact` |
+| [`validate_artifact`](/ai-tools/validate-artifact) | `validateArtifact()` | `/validate-artifact` |
+| [`validate_input`](/ai-tools/validate-input) | `validateInput()` | `/validate-input` |
+| [`fill`](/ai-tools/fill) | `fill()` | `/fill` |
+| [`get_fill_state`](/ai-tools/get-fill-state) | `getFillState()` | `/get-fill-state` |
+| [`update_fill`](/ai-tools/update-fill) | `updateFill()` | `/update-fill` |
+| [`render`](/ai-tools/render) | `render()` | `/render` |
+| [`extract`](/ai-tools/extract) | `extract()` | `/extract` |
+
+Every adapter joins the framework's abort signal to `signal` and `context.signal` from the config, sends the model a copy of each result bounded by `maxOutputBytes`, and gives application code the full result.
+
+## @paradoc/ai-sdk
+
+`paradocTools()` returns a `ParadocToolSet`: an object of ten AI SDK tools, keyed by tool name. Pass it as `tools` to `generateText`, `streamText`, or `ToolLoopAgent`.
+
+```typescript
+import { paradocTools } from "@paradoc/ai-sdk"
+
+const tools = { ...paradocTools(config), lookup_customer }
+const { fill, get_fill_state } = paradocTools(config)
+```
+
+`generateText` and `streamText` stop after one step by default. Set `stopWhen`, such as `isStepCount(10)`, so the model can call several tools.
+
+Other exports: the `ParadocTool<Name>` type, and the `OperationName` and `ToolDefinitions` types.
+
+## @paradoc/tanstack-ai
+
+`paradocTools()` returns a `ParadocToolSet`: a readonly array of ten server tools, in the order of `operationNames`. Pass it as `tools` to `chat()`, or spread it into your own array.
+
+```typescript
+import { paradocTools, fill, getFillState } from "@paradoc/tanstack-ai"
+
+const tools = [...paradocTools(config), lookupCustomer]
+const fewer = [fill(config), getFillState(config)]
+```
+
+`chat()` runs up to five model turns by default. Set `agentLoopStrategy`, such as `maxIterations(10)`, for longer tasks.
+
+### Definitions without execution
+
+`paradocToolDefinitions()` returns the ten tool definitions, with names and schemas but no execution. Use them where a client needs the tool metadata, then make each one a client or server tool with TanStack AI's `.client()` or `.server()`:
+
+```typescript
+import { paradocToolDefinitions } from "@paradoc/tanstack-ai"
+
+const clientTools = paradocToolDefinitions().map((definition) => definition.client())
+```
+
+Each tool also has its own definition function, such as `renderDefinition()`, exported from the package root and from the tool's subpath.
+
+Other exports: the `ParadocToolDefinition<Name>`, `ParadocServerTool<Name>`, `ParadocToolDefinitions`, `OperationName`, and `ToolDefinitions` types.
+
+## @paradoc/mastra
+
+`paradocTools()` returns an object of ten Mastra tools, keyed by tool name. Each tool's Mastra `id` is the same name. Pass it as `tools` to a Mastra `Agent`.
+
+```typescript
+import { paradocTools } from "@paradoc/mastra"
+
+const { inspect_artifact, fill, get_fill_state, update_fill } = paradocTools(config)
+```
+
+`agent.generate()` takes `maxSteps`, the number of tool calls the agent can make in one run.
+
+The tools set `strict: false`. Mastra's strict-schema layers would close the free-form JSON inputs, such as `data`, so OpenAI models could not send form data. Each tool validates its input itself.
+
+Other exports: `DEFAULT_MODEL_OUTPUT_MAX_BYTES` (16,384), and the `ParadocMastraConfig` type, which is the same as `ParadocToolsConfig`.

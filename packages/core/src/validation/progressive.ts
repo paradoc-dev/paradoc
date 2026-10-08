@@ -480,6 +480,16 @@ export function validatePartiesPatch(
 			continue
 		}
 
+		if (Array.isArray(partyValue)) {
+			errors.push(
+				createValidationError(
+					`parties.${roleId}`,
+					`Role "${roleId}" takes one party object, not an array (max=1).`,
+				),
+			)
+			continue
+		}
+
 		const normalized = normalizePartyInput(roleId, 0, partyValue, formParty)
 		if (!normalized.success) {
 			errors.push(...normalized.errors)

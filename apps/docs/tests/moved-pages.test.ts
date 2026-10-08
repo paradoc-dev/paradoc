@@ -50,6 +50,9 @@ describe("moved pages", () => {
     ["/ai/tools/fill.md", "/ai-tools/fill.md"],
     ["/skill.md", "/ai/skills.md"],
     ["/ai/ai-tools", "/ai/other-frameworks"],
+    ["/ai/ai-sdk", "/ai/quickstart"],
+    ["/ai/tanstack-ai.md", "/ai/quickstart.md"],
+    ["/ai/mastra", "/ai/quickstart"],
     ["/cli/registries", "/concepts/registries"],
   ])("%s redirects to %s, a real page", (from, to) => {
     expect(movedPath(from)).toBe(to);

@@ -7,18 +7,18 @@ const content = path.resolve(__dirname, "../content/docs");
 
 function fences(file: string): Array<{ language: string; code: string }> {
   const source = readFileSync(path.join(content, file), "utf8");
-  return [...source.matchAll(/^\s*```(ts|tsx|typescript)(?:\s+[^\n]*)?\n([\s\S]*?)^\s*```/gm)].map(
+  return [...source.matchAll(/^\s*```(ts|tsx|typescript)(?:[ \t]+[^\n]*)?\n([\s\S]*?)^\s*```/gm)].map(
     ([, language, code]) => ({ language: language!, code: code! }),
   );
 }
 
-const pages = ["guides", "concepts"].flatMap((directory) =>
+const pages = ["guides", "concepts", "ai"].flatMap((directory) =>
   readdirSync(path.join(content, directory), { recursive: true, encoding: "utf8" })
     .filter((file) => file.endsWith(".mdx"))
     .map((file) => `${directory}/${file.split(path.sep).join("/")}`),
 );
 
-describe("guide and concept page snippets", () => {
+describe("guide, concept, and AI agent page snippets", () => {
   test.each(pages)("compiles every TypeScript fence in %s", async (file) => {
     for (const { language, code } of fences(file).filter(({ code }) => /^\s*import\s/m.test(code))) {
       const source = code.includes("// forms/") ? code.slice(code.indexOf("// forms/")) : code;

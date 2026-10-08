@@ -1,110 +1,43 @@
 ---
 title: Overview
-description: What Paradoc gives AI agents, and how to add it to yours
+description: What an AI agent can do with Paradoc, and where to start
 ogTitle: Paradoc for AI agents
-ogDescription: Ten document tools for AI agents, with adapters for the Vercel AI SDK, TanStack AI, and Mastra, and skills for coding agents
+ogDescription: Give an AI agent tools to find a form, fill it from a conversation, and return a finished PDF
 ---
 
-Paradoc gives AI agents ten document tools. With them an agent can find an artifact in a registry, inspect it, validate it, fill it, render it, and read a filled PDF form back into data.
+Paradoc gives an AI agent tools to work with forms and documents. With them, an agent can find a form, ask a person for the values it needs, check each answer, and return the finished document as a PDF. It can also read a filled PDF form back into data.
 
-## Pick a route
+The tools run in your own application, inside the agent framework you already use.
 
-| You want | Use |
-|----------|-----|
-| An agent you build to call the tools | The AI tool packages: install the adapter for your framework, below |
-| A coding agent, such as Claude Code, to write Paradoc code with you | [Agent skills](/ai/skills) |
-| A hosted tool server that any MCP client connects to | The hosted MCP server at `mcp.paradoc.dev`. See [how it differs](#differences-from-the-mcp-server). |
+## How the agent works
 
-## Add the tools to your agent
+A form is a Paradoc artifact: a definition of its fields, its parties, its rules, and how it renders. The agent never edits a PDF directly. It works on a draft of the form data, and Paradoc checks every value against the artifact.
 
-| Package | Use it for | Install |
-|---------|------------|---------|
-| [`@paradoc/ai-sdk`](/ai/ai-sdk) | Vercel AI SDK 7 | `npm install @paradoc/ai-sdk ai zod` |
-| [`@paradoc/tanstack-ai`](/ai/tanstack-ai) | TanStack AI | `npm install @paradoc/tanstack-ai@0.7.0 @tanstack/ai@0.53.0 @tanstack/ai-openai@0.22.5 zod` |
-| [`@paradoc/mastra`](/ai/mastra) | Mastra | `npm install @paradoc/mastra @mastra/core zod` |
-| [`@paradoc/ai-tools`](/ai/other-frameworks) | Any other framework, or plain code | `npm install @paradoc/ai-tools` |
+1. **Find the form.** `get_artifact` loads it from a registry, with instructions written for agents.
+2. **Collect values.** `validate_input` checks each answer. `fill` starts a draft, and `update_fill` changes it.
+3. **Ask the next question.** `get_fill_state` reports what is still missing and what to ask next.
+4. **Return the document.** `render` produces the PDF, or Markdown for a preview.
 
-Each adapter wraps `@paradoc/ai-tools`, so every adapter exposes the same tools with the same schemas.
+There are ten tools in total. The [tool reference](/ai-tools) lists each one.
 
-### Quick start
+## Where to start
 
-<Tabs items={['Vercel AI SDK', 'TanStack AI', 'Mastra']} groupId="ai-framework" persist>
-  <Tab value="Vercel AI SDK">
-    ```bash
-    npm install @paradoc/ai-sdk ai zod @ai-sdk/openai
-    ```
+| You want to | Read |
+|---|---|
+| See an agent fill a form in a few minutes | [Quickstart](/ai/quickstart) |
+| Build an agent that collects a form through a conversation | [Build an intake agent](/ai/intake-agent) |
+| Start from a PDF that a person already filled | [Read a filled PDF](/ai/read-a-filled-pdf) |
+| Run the agent in production | [Prepare for production](/ai/production) |
+| Use a framework without an adapter, or no framework | [Use another framework](/ai/other-frameworks) |
+| Let a coding assistant, such as Claude Code, write Paradoc code with you | [Agent skills](/ai/skills) |
 
-    ```typescript
-    import { paradocTools } from "@paradoc/ai-sdk"
-    import { generateText } from "ai"
-    import { openai } from "@ai-sdk/openai"
+## Packages
 
-    const result = await generateText({
-      model: openai("gpt-4o"),
-      tools: paradocTools({
-        defaultRegistryUrl: "https://public.paradoc.dev",
-      }),
-      prompt: "Fill the pet addendum for my dog Rex",
-    })
-    ```
-  </Tab>
-  <Tab value="TanStack AI">
-    ```bash
-    npm install @paradoc/tanstack-ai@0.7.0 @tanstack/ai@0.53.0 @tanstack/ai-openai@0.22.5 zod
-    ```
+| Package | For |
+|---|---|
+| `@paradoc/ai-sdk` | Vercel AI SDK |
+| `@paradoc/tanstack-ai` | TanStack AI |
+| `@paradoc/mastra` | Mastra |
+| `@paradoc/ai-tools` | Any other framework, or plain code. Every adapter wraps it. |
 
-    ```typescript
-    import { chat } from "@tanstack/ai"
-    import { openaiText } from "@tanstack/ai-openai"
-    import { paradocTools } from "@paradoc/tanstack-ai"
-
-    const result = await chat({
-      adapter: openaiText("gpt-4o"),
-      messages: [{ role: "user", content: "Fill the pet addendum for my dog Rex" }],
-      tools: paradocTools({
-        defaultRegistryUrl: "https://public.paradoc.dev",
-      }),
-      stream: false,
-    })
-    ```
-  </Tab>
-  <Tab value="Mastra">
-    ```bash
-    npm install @paradoc/mastra @mastra/core zod
-    ```
-
-    ```typescript
-    import { Agent } from "@mastra/core/agent"
-    import { paradocTools } from "@paradoc/mastra"
-
-    const agent = new Agent({
-      id: "document-agent",
-      name: "Document agent",
-      instructions: "Use the Paradoc tools to inspect and complete documents.",
-      model: "openai/gpt-4o",
-      tools: paradocTools({
-        defaultRegistryUrl: "https://public.paradoc.dev",
-      }),
-    })
-    ```
-  </Tab>
-</Tabs>
-
-
-### The tools
-
-Every adapter exposes the same ten tools, named in snake_case: `get_registry`, `get_artifact`, `inspect_artifact`, `validate_artifact`, `validate_input`, `fill`, `get_fill_state`, `update_fill`, `render`, and `extract`. The [tool reference](/ai-tools) gives the inputs and outputs of each one.
-
-Every adapter takes the same options, such as a default registry and an origin allowlist. See [Configuration](/ai-tools/api#configuration).
-
-## Differences from the MCP server
-
-| | MCP server | AI packages |
-|---|---|---|
-| **Runs where** | Hosted at `mcp.paradoc.dev` | Your own application |
-| **Protocol** | Model Context Protocol | Your framework's tool API (AI SDK, TanStack AI, Mastra) |
-| **Registry lookup** | DB-backed registry IDs | Direct registry URLs |
-| **Render output** | Short-link URL or inline | Inline only |
-| **Auth** | Every `/mcp` request needs an OAuth bearer token scoped to an organization, or an `x-api-key` header. An OAuth connection is granted test, live, or both modes in the console; with both, each platform call names its mode. | Your config (`fetch`, API keys) |
-| **Tools only here** | `list_artifacts`, `list_registries`, `search`, and platform tools for e-signature envelopes, payments, and extraction jobs | `inspect_artifact`, `validate_input`, `get_fill_state`, `update_fill` |
-| **Extraction** | The platform `extract` tool runs hosted extraction jobs, including scanned and flattened documents | [`extract`](/ai-tools/extract) reads the fields of a fillable PDF in your own process, with no service call |
+Every adapter gives the same ten tools, with the same names and the same inputs and outputs. The [Adapters reference](/ai-tools/adapters) lists what each package exports.

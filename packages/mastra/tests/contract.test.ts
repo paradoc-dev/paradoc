@@ -209,6 +209,57 @@ describe('@paradoc/mastra', () => {
 		expect(serialized).toContain('"truncated":true')
 	})
 
+	it('keeps free-form JSON inputs open for OpenAI models, so form data reaches the tools', async () => {
+		const formArtifact = {
+			$schema: PARADOC_SCHEMA_URL,
+			kind: 'form' as const,
+			name: 'note',
+			fields: { name: { type: 'text' as const, label: 'Name' } },
+			layers: { text: { kind: 'inline' as const, mimeType: 'text/plain', text: 'Note for {{fields.name}}' } },
+			defaultLayer: 'text',
+		}
+		let call = 0
+		let renderSchema: unknown
+		let rendered: unknown
+		const usage = { inputTokens: { total: 1, noCache: 1, cacheRead: 0, cacheWrite: 0 }, outputTokens: { total: 1, text: 1, reasoning: 0 } }
+		const model = {
+			specificationVersion: 'v3',
+			provider: 'openai.responses',
+			modelId: 'gpt-4o',
+			supportsStructuredOutputs: true,
+			supportedUrls: {},
+			doGenerate: async (options: { tools?: Array<{ name: string; inputSchema: unknown }> }) => {
+				call += 1
+				if (call === 1) {
+					renderSchema = options.tools?.find((tool) => tool.name === 'render')?.inputSchema
+					const input = { source: 'artifact', artifact: formArtifact, data: { fields: { name: 'Jane Doe' } } }
+					return {
+						content: [{ type: 'tool-call' as const, toolCallId: 'render-1', toolName: 'render', input: JSON.stringify(input) }],
+						finishReason: { unified: 'tool-calls' as const, raw: 'tool_calls' },
+						usage,
+						warnings: [],
+					}
+				}
+				return { content: [{ type: 'text' as const, text: 'done' }], finishReason: { unified: 'stop' as const, raw: 'stop' }, usage, warnings: [] }
+			},
+			doStream: async () => { throw new Error('not used') },
+		}
+		const agent = new Agent({
+			id: 'openai-schema-test',
+			name: 'OpenAI schema test',
+			instructions: 'Render the note.',
+			model: model as never,
+			tools: { render: render() },
+		})
+
+		const result = await agent.generate('Render it', { maxSteps: 2 })
+		rendered = result.toolResults.find((entry) => entry.payload.toolName === 'render')?.payload.result
+
+		const dataSchema = (renderSchema as { properties?: { data?: { additionalProperties?: unknown } } }).properties?.data
+		expect(dataSchema?.additionalProperties).not.toBe(false)
+		expect(rendered).toMatchObject({ success: true, content: 'Note for Jane Doe' })
+	})
+
 	it('propagates Mastra cancellation into the shared fetch policy', async () => {
 		const controller = new AbortController()
 		let observedSignal: AbortSignal | undefined

@@ -109,14 +109,16 @@ describe("the docs areas, from the content folders", () => {
     expect(docs.sidebar).toBe(true);
   });
 
-  test("AI agents goes from the overview to each framework, then the skills", () => {
+  test("AI agents goes from the overview through the guides, then the skills for coding assistants", () => {
     const ai = section(docs.tree, "AI agents");
     expect(names(ai.children)).toEqual([
       "Overview",
-      "Vercel AI SDK",
-      "TanStack AI",
-      "Mastra",
-      "Other frameworks",
+      "Quickstart",
+      "Build an intake agent",
+      "Read a filled PDF",
+      "Prepare for production",
+      "Use another framework",
+      "--- For coding assistants ---",
       "Agent skills",
     ]);
     const skills = ai.children.at(-1) as PageTree.Folder;

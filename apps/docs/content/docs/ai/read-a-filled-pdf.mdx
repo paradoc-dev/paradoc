@@ -1,0 +1,99 @@
+---
+title: Read a filled PDF
+description: Turn a filled PDF form into form data, then ask only for what is missing
+ogTitle: Read a filled PDF form into data
+ogDescription: Extract the values from a filled PDF form, check them, and find the fields that are still missing
+---
+
+A person often has the form already, partly filled in a PDF reader. `extract` reads the values out of the PDF's form fields, so the agent asks only for what is missing.
+
+`extract` works on a fillable PDF: one with form fields, made from the same form as the artifact's PDF layer. A scanned or flattened PDF has no fields to read. For those, use the hosted Paradoc extraction service.
+
+## Do it in your app, not in the model
+
+A PDF is too large to pass through the model. Read it in your app code with the execute functions of `@paradoc/ai-tools`, then give the agent the draft.
+
+```bash
+npm install @paradoc/ai-tools
+```
+
+```typescript title="draft-from-pdf.ts"
+import {
+  executeExtract,
+  executeFill,
+  executeGetFillState,
+  type ParadocToolsConfig,
+} from "@paradoc/ai-tools"
+
+const config: ParadocToolsConfig = { defaultRegistryUrl: "https://public.paradoc.dev" }
+const source = { source: "registry", artifact_name: "pet-addendum" } as const
+
+export async function draftFromPdf(pdf: Uint8Array) {
+  // 1. Read the PDF's form fields back into form data.
+  const extracted = await executeExtract(
+    { ...source, pdf: Buffer.from(pdf).toString("base64") },
+    config,
+  )
+  if (!extracted.success) throw new Error(extracted.error?.message)
+
+  // 2. Note the values the PDF has but extraction could not read.
+  const unreadable = (extracted.report?.entries ?? [])
+    .filter((entry) => entry.status === "not_recoverable" || entry.status === "unparseable")
+    .map((entry) => ({ path: entry.path, reason: entry.reason }))
+
+  // 3. Check the recovered values against the form.
+  const draft = await executeFill({ ...source, data: extracted.data ?? {} }, config)
+  if (!draft.accepted) return { rejected: draft.errors ?? [], unreadable }
+
+  // 4. Find what is still missing.
+  const state = await executeGetFillState(
+    { ...source, data: draft.data, evaluation_context: draft.evaluation_context },
+    config,
+  )
+
+  return {
+    data: draft.data,
+    evaluation_context: draft.evaluation_context,
+    missing: state.open_required?.map((target) => target.key) ?? [],
+    unreadable,
+  }
+}
+```
+
+The four steps:
+
+1. **Extract.** `extract` returns `data` with every value it read exactly, and a `report` with one entry for each form field.
+2. **Note what could not be read.** An entry with status `not_recoverable` or `unparseable` has a value in the PDF that extraction did not turn into data, for example one PDF box that holds a full address. Its `reason` says why. Ask the person for these values again. An `empty` entry is a blank field.
+3. **Check the values.** `extract` does not validate. `fill` checks every recovered value against the form. If it rejects a value, `errors` names the path and the reason.
+4. **Find what is missing.** `get_fill_state` lists the required targets that are still open, in the order to ask for them.
+
+## The result
+
+For a PDF with the pet's name, the species, and the tenant filled in, `draftFromPdf` returns:
+
+```json
+{
+  "data": {
+    "fields": { "petName": "Rex", "species": "dog" },
+    "parties": { "tenant": { "name": "Jane Doe", "id": "tenant-0" } }
+  },
+  "evaluation_context": { "asOf": { "date": "2026-10-08", "datetime": "2026-10-08T18:53:22.483Z" } },
+  "missing": ["landlord", "weight", "isVaccinated"],
+  "unreadable": []
+}
+```
+
+Save `data` and `evaluation_context` as the draft of the conversation, and start the [intake agent](/ai/intake-agent) from it. The agent then asks for the landlord, the weight, and the vaccination status, and nothing else.
+
+## When extraction fails
+
+`extract` returns an error code instead of throwing. The common ones:
+
+| Code | Cause | What to do |
+|---|---|---|
+| `no_form_fields` | The PDF has no form fields: it is scanned or flattened | Use the hosted extraction service, or start an empty draft |
+| `not_matching` | The PDF is a different form, or a different version of it | Ask the person for the correct form |
+| `malformed_pdf` | The file is not a PDF, or it is damaged | Ask for the file again |
+| `encrypted_pdf` | The PDF is encrypted | Ask for a copy without a password |
+
+The [`extract` reference](/ai-tools/extract) lists every code and status.

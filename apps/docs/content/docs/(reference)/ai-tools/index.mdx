@@ -5,7 +5,7 @@ ogTitle: Tools — Paradoc AI
 ogDescription: Reference for the ten tools in the Paradoc AI packages
 ---
 
-Every Paradoc AI adapter ([AI SDK](/ai/ai-sdk), [TanStack AI](/ai/tanstack-ai), [Mastra](/ai/mastra)) exposes these ten tools. They come from [`@paradoc/ai-tools`](/ai/other-frameworks), so names, inputs, and outputs are the same in every adapter. Input and output fields are snake_case. Artifact JSON and fill data keep their own field names.
+Every Paradoc AI [adapter](/ai-tools/adapters) exposes these ten tools. They come from [`@paradoc/ai-tools`](/ai-tools/api), so names, inputs, and outputs are the same in every adapter. Input and output fields are snake_case. Artifact JSON and fill data keep their own field names.
 
 | Tool | Category | Description |
 |------|----------|-------------|
@@ -28,7 +28,7 @@ All tools except `get_registry` and `get_artifact` work on an artifact that you 
 |------|--------|------------|
 | `source: "artifact"` | `artifact`, `base_url?` | Artifact JSON passed inline. File-backed layers resolve against `base_url`. |
 | `source: "url"` | `url` | Fetches the artifact JSON. File-backed layers resolve against the URL's directory. |
-| `source: "registry"` | `registry_url`, `artifact_name` | Fetches `registry.json`, checks the artifact is listed, then fetches it |
+| `source: "registry"` | `registry_url?`, `artifact_name` | Fetches `registry.json`, checks the artifact is listed, then fetches it. Without `registry_url`, uses `defaultRegistryUrl` from the [config](/ai-tools/api#configuration). |
 
 ```typescript
 { source: "artifact", artifact: { kind: "form", name: "my-form", /* ... */ } }
@@ -47,15 +47,8 @@ Tools return failures in the result instead of throwing. A failed call carries a
 | `path` | `(string \| number)[]` | Optional path to the value that failed |
 | `retryable` | `boolean` | Optional hint that the call may succeed if retried |
 
-## A typical fill flow
+## How the tools work together
 
-1. `get_registry` and `get_artifact` find the artifact.
-2. `inspect_artifact` shows the fields and parties to collect.
-3. `validate_input` checks each value as the user gives it.
-4. `fill` starts the draft; `update_fill` changes it.
-5. `get_fill_state` reports what is still open and what to ask next.
-6. `render` produces the document, complete or not.
-
-To start from a completed PDF instead, call [`extract`](/ai-tools/extract) and pass its `data` to `fill`.
+[Build an intake agent](/ai/intake-agent) shows the tools in a conversation: find the form, check each answer, keep the draft, ask the next question, and render the result. [Read a filled PDF](/ai/read-a-filled-pdf) starts the draft from a PDF.
 
 Pass `data` and `evaluation_context` from each `fill` or `update_fill` result into the next call, so the draft and its date context stay the same across turns.

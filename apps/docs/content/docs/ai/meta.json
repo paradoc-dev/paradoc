@@ -2,10 +2,12 @@
   "title": "AI agents",
   "pages": [
     "index",
-    "ai-sdk",
-    "tanstack-ai",
-    "mastra",
+    "quickstart",
+    "intake-agent",
+    "read-a-filled-pdf",
+    "production",
     "other-frameworks",
+    "---For coding assistants---",
     "skills"
   ],
   "defaultOpen": false

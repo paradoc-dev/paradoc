@@ -21,7 +21,7 @@ export const UrlSourceSchema = z.object({
 
 export const RegistrySourceSchema = z.object({
 	source: z.literal('registry'),
-	registry_url: z.string().url().describe('Registry base URL'),
+	registry_url: z.string().url().optional().describe('Registry base URL. Omit it to use the configured default registry.'),
 	artifact_name: z.string().min(1).describe('Artifact name within the registry'),
 })
 
@@ -40,7 +40,7 @@ const SourceShape = {
 	artifact: JsonObjectSchema.optional().describe('Paradoc artifact JSON object'),
 	base_url: z.string().url().optional().describe('Base URL for file-backed layers'),
 	url: z.string().url().optional().describe('URL to a Paradoc artifact JSON file'),
-	registry_url: z.string().url().optional().describe('Registry base URL'),
+	registry_url: z.string().url().optional().describe('Registry base URL. Omit it to use the configured default registry.'),
 	artifact_name: z.string().min(1).optional().describe('Artifact name within the registry'),
 }
 
@@ -60,9 +60,8 @@ export const SourceOperationSchema = z.object({
 	if (value.source === 'url' && value.url === undefined) {
 		context.addIssue({ code: 'custom', path: ['url'], message: 'url is required when source is "url"' })
 	}
-	if (value.source === 'registry') {
-		if (value.registry_url === undefined) context.addIssue({ code: 'custom', path: ['registry_url'], message: 'registry_url is required when source is "registry"' })
-		if (value.artifact_name === undefined) context.addIssue({ code: 'custom', path: ['artifact_name'], message: 'artifact_name is required when source is "registry"' })
+	if (value.source === 'registry' && value.artifact_name === undefined) {
+		context.addIssue({ code: 'custom', path: ['artifact_name'], message: 'artifact_name is required when source is "registry"' })
 	}
 })
 
@@ -135,7 +134,7 @@ export const ValidateInputValueSchema = withSourceFields(ValidateInputSelectorsS
 export type ValidateInputValue = z.infer<typeof ValidateInputValueSchema>
 
 export const FillDataSchema = JsonObjectSchema.describe(
-	'Form payload { fields, parties, annexes } or checklist item values',
+	'Form payload { fields, parties, annexes } or checklist item values. parties is keyed by role ID: a role with max 1 takes one party object, a role with max above 1 takes an array of party objects.',
 )
 
 export const FillInputSchema = withSourceFields({
@@ -253,18 +252,32 @@ export const RuleViolationSchema = z.object({
 	message: z.string().describe('The rule message'),
 })
 
+export const FillTargetSchema = z.object({
+	kind: z.enum(['field', 'party', 'annex', 'item']).describe('field, party, or annex for a form; item for a checklist'),
+	key: z.string().describe('Field path, party role ID, annex ID, or checklist item ID'),
+	required: z.boolean(),
+	order: z.number().describe('Declaration order'),
+})
+
+export const FillItemStateSchema = FillTargetSchema.extend({
+	visible: z.boolean(),
+	status: z.enum(['hidden', 'optional', 'required']),
+	filled: z.boolean(),
+	blockedBy: z.array(z.string()).describe('Unfilled targets that keep this target hidden'),
+})
+
 export const FillStateOutputSchema = z.object({
 	artifact_kind: z.enum(['form', 'document', 'bundle', 'checklist']).optional(),
 	phase: z.string(),
 	summary: z.object({ required_total: z.number(), required_done: z.number(), required_remaining: z.number(), completion_percent: z.number() }),
 	defs_values: z.record(z.string(), z.unknown()).optional(),
 	rules: z.object({ valid: z.boolean(), errors: z.array(RuleViolationSchema), warnings: z.array(RuleViolationSchema) }),
-	open_required: z.array(z.unknown()),
-	open_optional: z.array(z.unknown()),
-	blocked: z.array(z.unknown()),
-	done: z.array(z.unknown()),
-	candidates: z.array(z.unknown()),
-	next: z.unknown().nullable(),
+	open_required: z.array(FillItemStateSchema),
+	open_optional: z.array(FillItemStateSchema),
+	blocked: z.array(FillItemStateSchema),
+	done: z.array(FillItemStateSchema),
+	candidates: z.array(FillTargetSchema),
+	next: FillTargetSchema.nullable(),
 	evaluation_context: z.record(z.string(), z.unknown()).optional(),
 	errors: z.array(ToolErrorSchema).optional(),
 	error: ToolErrorSchema.optional(),
@@ -345,6 +358,8 @@ export type ValidateInputOutput = z.infer<typeof ValidateInputOutputSchema>
 export type FillOutput = z.infer<typeof FillOutputSchema>
 export type FillStateOutput = z.infer<typeof FillStateOutputSchema>
 export type RuleViolation = z.infer<typeof RuleViolationSchema>
+export type FillTarget = z.infer<typeof FillTargetSchema>
+export type FillItemState = z.infer<typeof FillItemStateSchema>
 export type UpdateFillOutput = z.infer<typeof UpdateFillOutputSchema>
 export type RenderOutput = z.infer<typeof RenderOutputSchema>
 export type GetRegistryOutput = z.infer<typeof GetRegistryOutputSchema>

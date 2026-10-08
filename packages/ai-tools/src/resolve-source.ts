@@ -39,9 +39,13 @@ export async function resolveRegistryArtifact(
 	return { artifact: resolvedItem.artifact, base_url: artifactBaseUrl(artifactUrl), artifact_url: artifactUrl }
 }
 
+class MissingRegistryUrlError extends Error {
+	readonly code = 'missing_registry_url'
+}
+
 function requireRegistryUrl(input: string | undefined, config?: ParadocToolsConfig): string {
 	const registryUrl = registryUrlFromConfig(input, config)
-	if (!registryUrl) throw new Error('A registry_url is required, or configure defaultRegistryUrl.')
+	if (!registryUrl) throw new MissingRegistryUrlError('registry_url is required, or configure defaultRegistryUrl.')
 	return registryUrl
 }
 

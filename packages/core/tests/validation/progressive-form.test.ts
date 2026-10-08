@@ -399,6 +399,31 @@ describe('progressive form validation', () => {
 				expect(result.errors[0]?.field).toBe('parties.witness')
 			}
 		})
+
+		test('rejects array payload for single-party role and says to send one object', () => {
+			const petForm = createPetAddendumLikeForm()
+			const result = validatePartiesPatch(petForm, {
+				tenant: [{ name: 'Jane Doe' }],
+			})
+
+			expect(result.success).toBe(false)
+			if (!result.success) {
+				expect(result.errors).toEqual([
+					expect.objectContaining({
+						field: 'parties.tenant',
+						message: 'Role "tenant" takes one party object, not an array (max=1).',
+					}),
+				])
+			}
+		})
+
+		test('accepts one object for single-party role', () => {
+			const petForm = createPetAddendumLikeForm()
+			const result = validatePartiesPatch(petForm, { tenant: { name: 'Jane Doe' } })
+
+			expect(result.success).toBe(true)
+			if (result.success) expect(result.value.tenant).toMatchObject({ id: 'tenant-0', name: 'Jane Doe' })
+		})
 	})
 
 	describe('standalone annex validators', () => {

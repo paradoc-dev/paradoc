@@ -26,6 +26,8 @@ export type {
 	FillOutput,
 	FillStateInput,
 	FillStateOutput,
+	FillTarget,
+	FillItemState,
 	GetArtifactInput,
 	GetArtifactOutput,
 	GetRegistryInput,

@@ -45,7 +45,7 @@ Every adapter wraps `@paradoc/ai-tools`, so the tool names, inputs and outputs a
 |----------|--------|------------|
 | `"artifact"` | `artifact`, `base_url?` | Inline artifact JSON. File layers (a PDF template) resolve against `base_url`. |
 | `"url"` | `url` | Fetches the artifact JSON. File layers resolve against the URL's directory. |
-| `"registry"` | `registry_url`, `artifact_name` | Fetches `registry.json`, checks the artifact is listed, then fetches it. |
+| `"registry"` | `registry_url?`, `artifact_name` | Fetches `registry.json`, checks the artifact is listed, then fetches it. Without `registry_url`, uses `defaultRegistryUrl`. |
 
 The `$schema` rules are the SDK's ([schemas.md § Loading rules](./schemas.md#loading-rules)): a fetched artifact declares the current version, and an inline one may omit it. An older version returns an error that names `paradoc migrate`.
 
@@ -125,15 +125,18 @@ To start from a filled PDF, call `extract` and pass its `data` to `fill`. The re
 
 ```typescript
 import { paradocTools } from '@paradoc/ai-sdk'
-import { generateText } from 'ai'
+import { generateText, isStepCount } from 'ai'
 import { openai } from '@ai-sdk/openai'
 
 const result = await generateText({
   model: openai('gpt-4o'),
   tools: paradocTools({ defaultRegistryUrl: 'https://public.paradoc.dev' }),
+  stopWhen: isStepCount(10),
   prompt: 'Fill the pet addendum for my dog Rex, 30 lbs',
 })
 ```
+
+`generateText` and `streamText` stop after one step unless `stopWhen` is set, so without it the model calls one tool and stops.
 
 | Export | Returns |
 |--------|---------|

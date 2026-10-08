@@ -1,0 +1,397 @@
+---
+title: Build an intake agent
+description: Collect a form through a conversation, one question at a time, and return the finished PDF
+ogTitle: Build a conversational intake agent
+ogDescription: An AI agent that asks for each value a form needs, checks every answer, and returns the completed PDF
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+In this guide, you build an agent that fills a form through a conversation. It asks one question at a time, checks each answer against the form, knows what to ask next, and writes the PDF when the person confirms. The form is the pet addendum from the [Quickstart](/ai/quickstart).
+
+## The design: your app keeps the draft
+
+The draft is the form data collected so far. Your app stores it, one draft for each conversation, and the model never sees the whole draft. The model sends only the values it just learned, and your code merges them into the draft with Paradoc.
+
+You can also give the model the adapter's `fill` and `update_fill` tools and let it pass the whole draft in every call. That needs no code of your own, but every call sends the full draft twice, in the tool input and in the result, so the token cost grows with the form. The model can also drop or change values that it was not asked to change.
+
+<Steps>
+<Step>
+## Keep the draft in your app
+
+This module uses the execute functions of `@paradoc/ai-tools`. It does not depend on an AI framework.
+
+```typescript title="draft.ts"
+import {
+  executeFill,
+  executeGetArtifact,
+  executeGetFillState,
+  executeInspectArtifact,
+  executeRender,
+  executeUpdateFill,
+  type ParadocToolsConfig,
+} from "@paradoc/ai-tools"
+
+const config: ParadocToolsConfig = { defaultRegistryUrl: "https://public.paradoc.dev" }
+const source = { source: "registry", artifact_name: "pet-addendum" } as const
+
+type Draft = { data: Record<string, unknown>; evaluation_context?: Record<string, unknown> }
+
+// One draft per conversation. Use your database in production.
+const drafts = new Map<string, Draft>()
+
+// The model can call several tools at once. Run the calls of one
+// conversation in order, so two saves never overwrite each other.
+const queues = new Map<string, Promise<unknown>>()
+function inOrder<T>(conversationId: string, task: () => Promise<T>): Promise<T> {
+  const run = (queues.get(conversationId) ?? Promise.resolve()).then(task, task)
+  queues.set(conversationId, run.catch(() => undefined))
+  return run
+}
+
+/** The system prompt: the form's fields and parties, and its agent instructions. */
+export async function instructions() {
+  const form = await executeInspectArtifact({ ...source, sections: ["fields", "parties"] }, config)
+  const artifact = await executeGetArtifact({ artifact_name: source.artifact_name }, config)
+  return [
+    "You help the user fill in a form. Ask for one value at a time.",
+    "Save each answer with update_draft. Put only the new values in patch, such as",
+    '{ "patch": { "fields": { "<field>": <value> } }, "clear": [] } or',
+    '{ "patch": { "parties": { "<role>": { "name": "<name>" } } }, "clear": [] }.',
+    "update_draft says what is still missing. When nothing is missing, confirm with the user, then call finish.",
+    `The form: ${JSON.stringify(form.sections)}`,
+    `Instructions from the form's author: ${artifact.agent_instructions?.content ?? "none"}`,
+  ].join("\n\n")
+}
+
+export async function startDraft(conversationId: string) {
+  const draft = await executeFill({ ...source, data: {} }, config)
+  if (!draft.accepted || !draft.data) throw new Error(draft.error?.message)
+  drafts.set(conversationId, { data: draft.data, evaluation_context: draft.evaluation_context })
+}
+
+/** The update_draft tool: merge the model's patch into the stored draft. */
+export function updateDraft(conversationId: string, patch: Record<string, unknown>, clear: string[] = []) {
+  return inOrder(conversationId, () => saveDraft(conversationId, patch, clear))
+}
+
+async function saveDraft(conversationId: string, patch: Record<string, unknown>, clear: string[]) {
+  const draft = drafts.get(conversationId)
+  if (!draft) throw new Error(`No draft for ${conversationId}`)
+
+  const updated = await executeUpdateFill({ ...source, ...draft, patch, clear }, config)
+  if (!updated.accepted || !updated.data) {
+    // Nothing is saved. The model reads the errors and asks again.
+    return { saved: false, errors: updated.errors ?? [updated.error] }
+  }
+  const next = { data: updated.data, evaluation_context: updated.evaluation_context }
+  drafts.set(conversationId, next)
+
+  const state = await executeGetFillState({ ...source, ...next }, config)
+  return {
+    saved: true,
+    complete: updated.complete,
+    ask_next: state.next?.key ?? null,
+    missing: state.open_required.map((target) => target.key),
+    rule_errors: state.rules.errors,
+  }
+}
+
+/** The finish tool: render the stored draft as a PDF, once it is complete. */
+export function finish(conversationId: string) {
+  return inOrder(conversationId, async () => {
+    const draft = drafts.get(conversationId)
+    if (!draft) throw new Error(`No draft for ${conversationId}`)
+
+    const state = await executeGetFillState({ ...source, ...draft }, config)
+    const missing = state.open_required.map((target) => target.key)
+    if (missing.length > 0 || !state.rules.valid) {
+      return { done: false, error: { missing, rule_errors: state.rules.errors } } as const
+    }
+
+    const pdf = await executeRender({ ...source, ...draft, layer: "pdf" }, config)
+    if (!pdf.success || !pdf.content) return { done: false, error: pdf.error } as const
+    return { done: true, pdf: Buffer.from(pdf.content, "base64") } as const
+  })
+}
+```
+
+- `instructions()` builds the system prompt from the form: its fields and parties from `inspect_artifact`, and the agent instructions that the form's author wrote.
+- `startDraft()` starts an empty draft. To start from values you already have, pass them to `fill` as `data`. For example, start from the values of a [filled PDF](/ai/read-a-filled-pdf).
+- `updateDraft()` merges the model's patch with `update_fill`. When the patch is valid, it saves the new draft and returns what `get_fill_state` says is still missing. When it is not valid, it saves nothing and returns the errors.
+- `finish()` renders the saved draft as a PDF. It refuses while a required value is missing or a rule fails, and returns what is wrong.
+- `inOrder()` runs the tool calls of one conversation one after another. A model can call `update_draft` twice, or `update_draft` and `finish`, in the same step. Without the order, two saves can read the same draft and one of them is lost, or `finish` can render before the last save.
+</Step>
+
+<Step>
+## Give the model two tools
+
+The model gets two tools of your own: `update_draft` and `finish`. Pick your framework:
+
+<Tabs items={['Vercel AI SDK', 'TanStack AI', 'Mastra']} groupId="ai-framework" persist>
+  <Tab value="Vercel AI SDK">
+    ```bash
+    npm install @paradoc/ai-tools ai @ai-sdk/openai zod
+    ```
+
+    ```typescript title="intake.ts"
+    import { openai } from "@ai-sdk/openai"
+    import { generateText, isStepCount, tool, type ModelMessage } from "ai"
+    import { writeFile } from "node:fs/promises"
+    import { z } from "zod"
+    import { finish, instructions, startDraft, updateDraft } from "./draft"
+
+    export async function createIntake(conversationId: string) {
+      await startDraft(conversationId)
+      const system = await instructions()
+      const messages: ModelMessage[] = []
+
+      const tools = {
+        update_draft: tool({
+          description: "Save the user's answers into the draft. Send only new or changed values.",
+          inputSchema: z.object({
+            patch: z.record(z.string(), z.unknown()).describe("New values: { fields, parties }"),
+            clear: z.array(z.string()).describe("Paths to empty, such as fields.weight. Send [] for none."),
+          }),
+          execute: ({ patch, clear }) => updateDraft(conversationId, patch, clear),
+        }),
+        finish: tool({
+          description: "Render the completed form as a PDF. Call it only after the user confirms the values.",
+          inputSchema: z.object({}),
+          execute: async () => {
+            const result = await finish(conversationId)
+            if (!result.done) return { done: false, error: result.error }
+            await writeFile(`${conversationId}.pdf`, result.pdf)
+            return { done: true }
+          },
+        }),
+      }
+
+      /** Send one user message, and get the agent's reply. */
+      return async function reply(text: string) {
+        messages.push({ role: "user", content: text })
+        const result = await generateText({
+          model: openai("gpt-4o"),
+          system,
+          messages,
+          tools,
+          stopWhen: isStepCount(5),
+        })
+        messages.push(...result.response.messages)
+        return result.text
+      }
+    }
+    ```
+  </Tab>
+  <Tab value="TanStack AI">
+    ```bash
+    npm install @paradoc/ai-tools @tanstack/ai@0.53.0 @tanstack/ai-openai@0.22.5 zod
+    ```
+
+    ```typescript title="intake.ts"
+    import { chat, maxIterations, toolDefinition } from "@tanstack/ai"
+    import { openaiText } from "@tanstack/ai-openai"
+    import { writeFile } from "node:fs/promises"
+    import { z } from "zod"
+    import { finish, instructions, startDraft, updateDraft } from "./draft"
+
+    export async function createIntake(conversationId: string) {
+      await startDraft(conversationId)
+      const system = await instructions()
+      const messages: Array<{ role: "user" | "assistant"; content: string }> = []
+
+      const tools = [
+        toolDefinition({
+          name: "update_draft",
+          description: "Save the user's answers into the draft. Send only new or changed values.",
+          inputSchema: z.object({
+            patch: z.record(z.string(), z.unknown()).describe("New values: { fields, parties }"),
+            clear: z.array(z.string()).describe("Paths to empty, such as fields.weight. Send [] for none."),
+          }),
+        }).server(({ patch, clear }) => updateDraft(conversationId, patch, clear)),
+        toolDefinition({
+          name: "finish",
+          description: "Render the completed form as a PDF. Call it only after the user confirms the values.",
+          inputSchema: z.object({}),
+        }).server(async () => {
+          const result = await finish(conversationId)
+          if (!result.done) return { done: false, error: result.error }
+          await writeFile(`${conversationId}.pdf`, result.pdf)
+          return { done: true }
+        }),
+      ]
+
+      /** Send one user message, and get the agent's reply. */
+      return async function reply(text: string) {
+        messages.push({ role: "user", content: text })
+        const answer = await chat({
+          adapter: openaiText("gpt-4o"),
+          systemPrompts: [system],
+          messages,
+          tools,
+          agentLoopStrategy: maxIterations(5),
+          stream: false,
+        })
+        // The draft lives in your app, so the history needs only the text.
+        messages.push({ role: "assistant", content: answer })
+        return answer
+      }
+    }
+    ```
+  </Tab>
+  <Tab value="Mastra">
+    ```bash
+    npm install @paradoc/ai-tools @mastra/core zod
+    ```
+
+    ```typescript title="intake.ts"
+    import { Agent } from "@mastra/core/agent"
+    import { createTool } from "@mastra/core/tools"
+    import { writeFile } from "node:fs/promises"
+    import { z } from "zod"
+    import { finish, instructions, startDraft, updateDraft } from "./draft"
+
+    export async function createIntake(conversationId: string) {
+      await startDraft(conversationId)
+      type Message = { role: "user"; content: string } | { role: "assistant"; content: string }
+      const messages: Message[] = []
+
+      const agent = new Agent({
+        id: "intake-agent",
+        name: "Intake agent",
+        model: "openai/gpt-4o",
+        instructions: await instructions(),
+        tools: {
+          update_draft: createTool({
+            id: "update_draft",
+            description: "Save the user's answers into the draft. Send only new or changed values.",
+            inputSchema: z.object({
+              patch: z.record(z.string(), z.unknown()).describe("New values: { fields, parties }"),
+              clear: z.array(z.string()).describe("Paths to empty, such as fields.weight. Send [] for none."),
+            }),
+            execute: ({ patch, clear }) => updateDraft(conversationId, patch, clear),
+          }),
+          finish: createTool({
+            id: "finish",
+            description: "Render the completed form as a PDF. Call it only after the user confirms the values.",
+            inputSchema: z.object({}),
+            execute: async () => {
+              const result = await finish(conversationId)
+              if (!result.done) return { done: false, error: result.error }
+              await writeFile(`${conversationId}.pdf`, result.pdf)
+              return { done: true }
+            },
+          }),
+        },
+      })
+
+      /** Send one user message, and get the agent's reply. */
+      return async function reply(text: string) {
+        messages.push({ role: "user", content: text })
+        const result = await agent.generate(messages, { maxSteps: 5 })
+        // The draft lives in your app, so the history needs only the text.
+        messages.push({ role: "assistant", content: result.text })
+        return result.text
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+`clear` is required, so the model sends `[]` when there is nothing to clear. Some providers send `null` for an optional field, and a schema that does not allow `null` rejects it.
+</Step>
+
+<Step>
+## Talk to it
+
+```typescript title="main.ts"
+import { createInterface } from "node:readline/promises"
+import { createIntake } from "./intake"
+
+const reply = await createIntake("demo")
+const terminal = createInterface({ input: process.stdin, output: process.stdout })
+
+// Press Ctrl+C to stop. The agent writes demo.pdf when the form is done.
+while (true) {
+  const text = await terminal.question("You: ")
+  console.log(`Agent: ${await reply(text)}\n`)
+}
+```
+
+```bash
+npx tsx main.ts
+```
+
+A conversation with the Vercel AI SDK version, shortened. The model writes its own words, so yours will differ.
+
+```text
+You: Hi, I need to add my dog to my lease.
+Agent: Great! Let's start by gathering some details about your dog. What is your pet's name?
+
+You: His name is Rex.
+Agent: Thanks! What species is Rex? Please choose from dog, cat, or fish.
+
+You: He's a parrot! Just kidding, he's a dog.
+Agent: Got it! Now, can you tell me Rex's weight in pounds?
+
+...
+
+You: The landlord's name is Acme Properties LLC.
+Agent: Here's a summary of the information you provided:
+- Pet Name: Rex
+- Species: Dog
+- Weight: 31 lbs
+- Vaccinated: Yes
+- Tenant Name: Jane Doe
+- Landlord Name: Acme Properties LLC
+Does everything look correct?
+
+You: Yes.
+Agent: The document is ready for signing!
+```
+
+The agent writes `demo.pdf` when you confirm.
+</Step>
+</Steps>
+
+## How the agent knows what to ask
+
+After each save, `update_draft` returns the state of the draft:
+
+```json
+{
+  "saved": true,
+  "complete": false,
+  "ask_next": "tenant",
+  "missing": ["tenant", "landlord", "isVaccinated"],
+  "rule_errors": []
+}
+```
+
+- `missing` lists the required values that are still empty. It changes as the person answers: a field that depends on another answer appears when that answer makes it visible.
+- `ask_next` is the first target that can be filled now, in the form's dependency order. The form's agent instructions can ask for a different order. In this form they ask about the pet first, and the model follows them.
+- `rule_errors` lists the form's rules that the values break, such as a deposit over a limit. Each one has the rule's `message`, which the model can explain to the person.
+- `complete` is `true` when every requirement is met.
+
+The `get_fill_state` result has more, such as `blocked` targets and the reason each one is hidden. See [`get_fill_state`](/ai-tools/get-fill-state).
+
+## When an answer is wrong
+
+`update_fill` checks every value against the form before anything is saved. For a species the form does not list, `update_draft` returns:
+
+```json
+{
+  "saved": false,
+  "errors": [{ "code": "validation_error", "message": "Must be one of: dog, cat, fish", "path": ["fields", "species"] }]
+}
+```
+
+The draft does not change. The model reads the message and asks again. An error names the value and the reason, so the model can also fix its own mistakes, such as a party sent in the wrong shape.
+
+To take an answer back, the model sends the path in `clear`, such as `["fields.weight"]`. The value is emptied, and `weight` is in `missing` again.
+
+## Before production
+
+- **Store the drafts.** Replace the `Map` with your database, keyed by conversation. A draft is JSON: `data` and `evaluation_context`. When more than one server can handle a conversation, replace `inOrder()` with a lock or a transaction on the draft row.
+- **Keep `evaluation_context`.** It fixes the "as of" date of the draft, so date rules give the same result on every turn.
+- **Set the tool configuration.** Restrict fetches, add your registry credential, and scope the cache per request. See [Prepare for production](/ai/production).

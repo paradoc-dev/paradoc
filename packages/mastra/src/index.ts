@@ -17,6 +17,8 @@ export type {
 	FillOutput,
 	FillStateInput,
 	FillStateOutput,
+	FillTarget,
+	FillItemState,
 	GetArtifactInput,
 	GetArtifactOutput,
 	GetRegistryInput,
@@ -69,6 +71,10 @@ function createMastraTool<Input, Output>(
 ) {
 	return createTool({
 		id: definition.name,
+		// Mastra's strict-schema compatibility layers close every object. That turns
+		// free-form JSON inputs (data, patch, artifact) into empty objects, so OpenAI
+		// models send null. The shared execute function validates the input instead.
+		strict: false,
 		description: definition.description,
 		inputSchema: definition.input_schema,
 		outputSchema: definition.output_schema,

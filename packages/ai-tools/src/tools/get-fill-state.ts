@@ -1,6 +1,6 @@
 import type { RuleValidationResult } from '@paradoc/core'
 import type { ParadocToolsConfig } from '../config'
-import { FillStateInputSchema, type FillStateInput, type FillStateOutput, type RuleViolation, type ToolError } from '../contracts'
+import { FillStateInputSchema, type FillItemState, type FillStateInput, type FillStateOutput, type FillTarget, type RuleViolation, type ToolError } from '../contracts'
 import { artifactKind, asChecklistPayload, asFormPayload, contextOptions, contextSnapshot, makeResolver } from '../artifact'
 import { errorFromUnknown, validationErrors } from '../errors'
 import { resolveSource } from '../resolve-source'
@@ -23,12 +23,12 @@ function stateOutput(kind: 'form' | 'checklist', state: {
 	phase: string
 	summary: { requiredTotal: number; requiredDone: number; requiredRemaining: number; completionPercent: number }
 	defsValues?: Record<string, unknown>
-	openRequired: unknown[]
-	openOptional: unknown[]
-	blocked: unknown[]
-	done: unknown[]
-	candidates: unknown[]
-	next: unknown
+	openRequired: FillItemState[]
+	openOptional: FillItemState[]
+	blocked: FillItemState[]
+	done: FillItemState[]
+	candidates: FillTarget[]
+	next: FillTarget | null
 }, rules: CoreRules, context: unknown, errors?: ToolError[]): FillStateOutput {
 	return {
 		artifact_kind: kind,

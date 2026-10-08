@@ -1,0 +1,80 @@
+---
+title: Prepare for production
+description: Restrict where the tools fetch from, use a private registry, and keep large results away from the model
+ogTitle: Run Paradoc AI tools in production
+ogDescription: Origin allowlists, private registry credentials, per-request context, and output limits for Paradoc AI tools
+---
+
+The quickstart uses defaults that suit a first run. Before real users talk to your agent, set these five things.
+
+## Make the tools per request
+
+Create the tools inside your request handler, with a configuration like this one:
+
+```typescript title="tools.ts"
+import { createToolExecutionContext, paradocTools, type ParadocToolsConfig } from "@paradoc/ai-sdk"
+
+const REGISTRY = "https://forms.example.com"
+
+export function toolsForRequest(request: Request) {
+  const config: ParadocToolsConfig = {
+    defaultRegistryUrl: REGISTRY,
+    // Fetch only from your registry, not from a URL the model writes.
+    approvedOrigins: [REGISTRY],
+    // Send your registry credential with every request: index, artifacts, and layer files.
+    fetch: (input, init) => {
+      const headers = new Headers(init?.headers)
+      headers.set("authorization", `Bearer ${process.env.REGISTRY_TOKEN}`)
+      return fetch(input, { ...init, headers })
+    },
+    // One cache and one abort signal for this request only.
+    context: createToolExecutionContext({ signal: request.signal }),
+    // The model gets at most 16 KB of each result. Your code gets all of it.
+    maxOutputBytes: 16_384,
+  }
+  return paradocTools(config)
+}
+```
+
+The example imports from `@paradoc/ai-sdk`. `@paradoc/tanstack-ai` and `@paradoc/mastra` export the same `paradocTools`, `createToolExecutionContext`, and `ParadocToolsConfig`, and take the same configuration.
+
+### Fetch only from your registry
+
+The model writes the tool inputs. If it writes a `registry_url` or a `url`, the tools fetch it. `approvedOrigins` limits every fetch (registry index, artifacts, instructions, and layer files) to the origins you list. A fetch to any other origin fails with an error result, and the model sees why.
+
+Without `approvedOrigins`, the tools fetch any public HTTPS URL. They never fetch local or private network addresses unless you set `allowLocalDevelopment`. Do not set it in production.
+
+### Send your registry credential
+
+A private registry needs a credential. Give the tools a `fetch` that adds it. The tools use your `fetch` for every request, including PDF and DOCX layer files. A refused credential returns an error result with the HTTP status, such as `Fetch failed: https://forms.example.com/registry.json (401)`.
+
+### Scope the cache to one request
+
+`createToolExecutionContext()` makes a cache for registry responses and joins your abort signal to every fetch. Make a new one for each request. Never share one between users: the cache holds what one user's credential could read.
+
+When the request is cancelled, the tools stop their fetches. Each adapter also joins its framework's abort signal.
+
+### Keep large results away from the model
+
+`maxOutputBytes` limits the content the model sees from each tool result. The default is 16,384 bytes. A longer result is cut and marked `truncated: true`. Your application code always gets the full result, so it can save the PDF.
+
+To get a smaller result in your own code too, pass `presentation` to [`render`](/ai-tools/render): `max_bytes` cuts the content, and `include_content: false` returns only its size and type.
+
+## Handle errors
+
+The tools do not throw when they fail. They return a result with an `error` object, and the model reads it and can try again or ask the user. Tools that check values also return `errors`, one entry for each value, with the path and the reason.
+
+In your own code, check `error.code` before you use a result:
+
+| Code | Meaning |
+|---|---|
+| `missing_registry_url` | No `registry_url` in the input and no `defaultRegistryUrl` |
+| `artifact_not_found` | The registry does not list that artifact name |
+| `artifact_fetch_error`, `registry_fetch_error` | A fetch failed, or the origin is not approved. Other tools report the same failure with their own code, such as `fill_error` or `render_error`, and the message says why. |
+| `outdated-version`, `missing-version`, `unknown-version` | The artifact's `$schema` is not the current schema version. Run `paradoc migrate` on the artifact and publish it again. |
+| `validation_error` | A value does not match the form |
+| `unsupported_artifact` | The tool does not support this kind of artifact, for example `fill` on a document |
+
+## Publish artifacts on the current schema
+
+An artifact that the tools load from a registry or a URL must declare the current schema version in `$schema`. When you upgrade the Paradoc packages, run [`paradoc migrate`](/cli/commands/migrate) on your artifacts and publish them again. See [loading rules](/schemas#loading-rules).

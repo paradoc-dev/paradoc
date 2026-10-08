@@ -125,3 +125,52 @@ describe('get_fill_state rule results', () => {
 		expect(parsed.success).toBe(false)
 	})
 })
+
+describe('get_fill_state targets', () => {
+	const conditionalForm = {
+		kind: 'form' as const,
+		name: 'pet-request',
+		fields: {
+			hasPet: { type: 'boolean' as const, label: 'Has a pet', required: true },
+			petName: { type: 'text' as const, label: 'Pet name', visible: 'fields.hasPet == true', required: 'fields.hasPet == true' },
+			notes: { type: 'text' as const, label: 'Notes' },
+		},
+		layers: { text: { kind: 'inline' as const, mimeType: 'text/plain', text: '{{fields.hasPet}}' } },
+		defaultLayer: 'text',
+	}
+
+	it('returns typed form targets that the output schema accepts', async () => {
+		const state = await executeGetFillState({ source: 'artifact', artifact: conditionalForm, data: {}, include_optional: true })
+
+		const parsed = FillStateOutputSchema.parse(state)
+		expect(parsed.next).toEqual({ kind: 'field', key: 'hasPet', required: true, order: 0 })
+		expect(parsed.open_required[0]).toMatchObject({ kind: 'field', key: 'hasPet', visible: true, status: 'required', filled: false, blockedBy: [] })
+		expect(parsed.blocked).toEqual([expect.objectContaining({ key: 'petName', visible: false, status: 'hidden', blockedBy: ['hasPet'] })])
+		expect(parsed.candidates.map((target) => target.key)).toEqual(['hasPet', 'notes'])
+	})
+
+	it('returns checklist targets of kind item', async () => {
+		const checklist = {
+			kind: 'checklist' as const,
+			name: 'move-in',
+			items: [{ id: 'keys', title: 'Keys returned' }],
+		}
+		const state = await executeGetFillState({ source: 'artifact', artifact: checklist, data: {} })
+
+		expect(state.error).toBeUndefined()
+		expect(FillStateOutputSchema.parse(state).next).toEqual({ kind: 'item', key: 'keys', required: true, order: 0 })
+	})
+
+	it('rejects a target without its kind and key', () => {
+		const parsed = FillStateOutputSchema.safeParse({
+			artifact_kind: 'form',
+			phase: 'draft',
+			summary: { required_total: 1, required_done: 0, required_remaining: 1, completion_percent: 0 },
+			rules: { valid: true, errors: [], warnings: [] },
+			open_required: [], open_optional: [], blocked: [], done: [], candidates: [],
+			next: { required: true, order: 0 },
+		})
+		expect(parsed.success).toBe(false)
+	})
+})
+

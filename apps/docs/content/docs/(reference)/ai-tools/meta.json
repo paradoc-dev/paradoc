@@ -12,6 +12,7 @@
     "update-fill",
     "render",
     "extract",
+    "adapters",
     "api"
   ],
   "defaultOpen": false

@@ -5,7 +5,7 @@ ogTitle: "@paradoc/ai-tools API"
 ogDescription: Tool definitions, execute functions, configuration, request context, registry client, schemas, and types
 ---
 
-`@paradoc/ai-tools` is the contract every Paradoc AI adapter wraps. It has the ten tool definitions, their Zod input and output schemas, an execute function per tool, and a registry client. To start using it, see [Other frameworks](/ai/other-frameworks).
+`@paradoc/ai-tools` is the contract every Paradoc AI adapter wraps. It has the ten tool definitions, their Zod input and output schemas, an execute function per tool, and a registry client. To start using it, see [Use another framework](/ai/other-frameworks).
 
 ```bash
 npm install @paradoc/ai-tools
@@ -31,7 +31,7 @@ const { name, description, input_schema, output_schema, execute } = toolDefiniti
 
 `operationNames` lists the ten names in order: `get_registry`, `get_artifact`, `inspect_artifact`, `validate_artifact`, `validate_input`, `fill`, `get_fill_state`, `update_fill`, `render`, `extract`. The `OperationName` type is their union.
 
-An adapter maps each definition to its framework's tool type. See the [AI SDK](/ai/ai-sdk), [TanStack AI](/ai/tanstack-ai), and [Mastra](/ai/mastra) adapters.
+An adapter maps each definition to its framework's tool type. See [Write an adapter](/ai/other-frameworks#write-an-adapter) and the [Adapters](/ai-tools/adapters) reference.
 
 ## Execute functions
 
@@ -54,42 +54,7 @@ The execute functions do not throw for tool failures. They return a result with 
 
 An artifact read from a URL or a registry must carry the current dated `$schema`. An inline artifact may omit it, but one it declares must be current. Otherwise the error code is `missing-version`, `outdated-version`, or `unknown-version`, and the message names the current version and `paradoc migrate`. See [loading rules](/schemas#loading-rules).
 
-The execute functions parse their input with the tool's Zod schema. Pass the snake_case field names shown on each tool page.
-
-```typescript
-import { executeFill, executeGetFillState, executeRender } from "@paradoc/ai-tools"
-
-const source = {
-  source: "registry",
-  registry_url: "https://public.paradoc.dev",
-  artifact_name: "pet-addendum",
-} as const
-
-const draft = await executeFill({
-  ...source,
-  data: {
-    fields: { petName: "Buddy", species: "dog", weight: 45, isVaccinated: true },
-    parties: {
-      tenant: { id: "tenant-0", name: "Jane Doe" },
-      landlord: { id: "landlord-0", name: "Acme Properties LLC", legalName: "Acme Properties LLC" },
-    },
-  },
-})
-if (!draft.accepted) throw new Error(draft.error?.message)
-
-const state = await executeGetFillState({
-  ...source,
-  data: draft.data,
-  evaluation_context: draft.evaluation_context,
-})
-
-const rendered = await executeRender({
-  ...source,
-  data: draft.data,
-  evaluation_context: draft.evaluation_context,
-  layer: "markdown",
-})
-```
+The execute functions parse their input with the tool's Zod schema. Pass the snake_case field names shown on each tool page. [Use another framework](/ai/other-frameworks#call-the-tools-from-your-code) has a full example.
 
 ## Resolving a source
 
@@ -126,9 +91,22 @@ These helpers fetch from a Paradoc registry with the same URL and size checks th
 | `resolveRelativeUrl` | Resolve an instruction or item path against a base URL. Layer files are read with `@paradoc/resolvers/http` |
 | `bytesToBase64`, `bytesToText` | Encode fetched bytes |
 
+## Model output
+
+The adapters use these helpers to bound the copy of a result that goes to the model. An adapter for another framework uses them the same way.
+
+| Export | Description |
+|--------|-------------|
+| `configForExecution(config, signal?)` | Return a per-call config that joins `signal`, `context.signal`, and the framework's abort signal |
+| `boundModelValue(output, maxBytes?)` | Return `output` with its `content` cut to `maxBytes` and marked `truncated: true`. Other results return unchanged. |
+| `toModelOutput(output, maxBytes?)` | `boundModelValue` wrapped as `{ type: "json", value }` |
+| `attachModelOutputSerialization(output, maxBytes?)` | Give `output` a `toJSON` that returns the bounded copy, for frameworks that serialize results with `JSON.stringify` |
+| `truncateContent(content, encoding, maxBytes)` | Cut text at a whole UTF-8 character, or base64 at a whole 4-character group |
+| `DEFAULT_MODEL_OUTPUT_MAX_BYTES` | 16,384 |
+
 ## Schemas and types
 
-The package exports every input and output schema, such as `FillInputSchema` and `FillOutputSchema`, and the types inferred from them, such as `FillInput` and `FillOutput`. It also exports `SourceSchema` (the source union), `SourceOperationSchema`, `ToolErrorSchema`, `ValidationIssueSchema`, and the `ToolDefinitions` type.
+The package exports every input and output schema, such as `FillInputSchema` and `FillOutputSchema`, and the types inferred from them, such as `FillInput` and `FillOutput`. It also exports `SourceSchema` (the source union), `SourceOperationSchema`, `ToolErrorSchema`, `ValidationIssueSchema`, `FillTargetSchema` and `FillItemStateSchema` (the targets in a [`get_fill_state`](/ai-tools/get-fill-state) result), and the `ToolDefinitions` type.
 
 ## Configuration
 

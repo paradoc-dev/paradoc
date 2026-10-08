@@ -1,0 +1,221 @@
+---
+title: Quickstart
+description: Give an agent the Paradoc tools and have it fill a real form
+ogTitle: AI agent quickstart
+ogDescription: Give an AI agent the Paradoc tools and have it fill a lease addendum and return a PDF
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+In this quickstart, an agent fills a pet addendum to a lease from one message and saves it as a PDF. The form comes from the Paradoc public registry, so you do not write a form first.
+
+You need Node.js 22.13 or newer, a project with `"type": "module"` in its `package.json`, and an OpenAI API key in `OPENAI_API_KEY`. To use a different model, change the model line. Any model that can call tools works.
+
+<Steps>
+<Step>
+## Install and write the agent
+
+Pick your framework. Each tab is a complete program.
+
+<Tabs items={['Vercel AI SDK', 'TanStack AI', 'Mastra']} groupId="ai-framework" persist>
+  <Tab value="Vercel AI SDK">
+    ```bash
+    npm install @paradoc/ai-sdk ai @ai-sdk/openai zod
+    ```
+
+    ```typescript title="agent.ts"
+    import { writeFile } from "node:fs/promises"
+    import { openai } from "@ai-sdk/openai"
+    import { paradocTools } from "@paradoc/ai-sdk"
+    import { generateText, isStepCount } from "ai"
+
+    const result = await generateText({
+      model: openai("gpt-4o"),
+      tools: paradocTools({ defaultRegistryUrl: "https://public.paradoc.dev" }),
+      stopWhen: isStepCount(10),
+      system: [
+        "You fill documents with the Paradoc tools.",
+        "Leave registry_url out: the tools use the configured registry.",
+        "Call get_artifact first and follow its agent instructions.",
+        "Pass the data from the last fill result to render.",
+        "The app gives the user the PDF. Do not write links to it.",
+      ].join("\n"),
+      prompt:
+        "Fill the pet-addendum form. My dog Rex weighs 30 lbs and is vaccinated. " +
+        "I am Jane Doe, the tenant. The landlord is Acme Properties LLC. " +
+        "Then render it as a PDF.",
+    })
+
+    for (const step of result.steps) {
+      for (const call of step.toolCalls) console.log("tool:", call.toolName)
+    }
+    console.log(result.text)
+
+    const pdf = result.steps
+      .flatMap((step) => step.toolResults)
+      .find((r) => r.toolName === "render" && r.output.mime_type === "application/pdf")
+    if (pdf?.toolName === "render" && pdf.output.content) {
+      await writeFile("pet-addendum.pdf", Buffer.from(pdf.output.content, "base64"))
+    }
+    ```
+
+    `generateText` stops after one step unless you set `stopWhen`. Without it, the agent calls one tool and stops.
+
+  </Tab>
+  <Tab value="TanStack AI">
+    ```bash
+    npm install @paradoc/tanstack-ai@0.7.0 @tanstack/ai@0.53.0 @tanstack/ai-openai@0.22.5 zod
+    ```
+
+    ```typescript title="agent.ts"
+    import { writeFile } from "node:fs/promises"
+    import { chat, maxIterations } from "@tanstack/ai"
+    import { openaiText } from "@tanstack/ai-openai"
+    import { paradocTools, type RenderOutput } from "@paradoc/tanstack-ai"
+
+    let pdf: RenderOutput | undefined
+
+    const text = await chat({
+      adapter: openaiText("gpt-4o"),
+      tools: paradocTools({ defaultRegistryUrl: "https://public.paradoc.dev" }),
+      agentLoopStrategy: maxIterations(10),
+      systemPrompts: [
+        "You fill documents with the Paradoc tools.",
+        "Leave registry_url out: the tools use the configured registry.",
+        "Call get_artifact first and follow its agent instructions.",
+        "Pass the data from the last fill result to render.",
+        "The app gives the user the PDF. Do not write links to it.",
+      ],
+      messages: [
+        {
+          role: "user",
+          content:
+            "Fill the pet-addendum form. My dog Rex weighs 30 lbs and is vaccinated. " +
+            "I am Jane Doe, the tenant. The landlord is Acme Properties LLC. " +
+            "Then render it as a PDF.",
+        },
+      ],
+      middleware: [
+        {
+          onAfterToolCall: (_context, info) => {
+            console.log("tool:", info.toolName)
+            const output = info.result as RenderOutput | undefined
+            if (info.toolName === "render" && output?.mime_type === "application/pdf") pdf = output
+          },
+        },
+      ],
+      stream: false,
+    })
+
+    console.log(text)
+
+    if (pdf?.content) {
+      await writeFile("pet-addendum.pdf", Buffer.from(pdf.content, "base64"))
+    }
+    ```
+
+    `@paradoc/tanstack-ai` needs `@tanstack/ai` at exactly 0.53.0. The middleware gives your code each tool result.
+
+  </Tab>
+  <Tab value="Mastra">
+    ```bash
+    npm install @paradoc/mastra @mastra/core zod
+    ```
+
+    ```typescript title="agent.ts"
+    import { writeFile } from "node:fs/promises"
+    import { Agent } from "@mastra/core/agent"
+    import { paradocTools, type RenderOutput } from "@paradoc/mastra"
+
+    const agent = new Agent({
+      id: "document-agent",
+      name: "Document agent",
+      model: "openai/gpt-4o",
+      tools: paradocTools({ defaultRegistryUrl: "https://public.paradoc.dev" }),
+      instructions: [
+        "You fill documents with the Paradoc tools.",
+        "Leave registry_url out: the tools use the configured registry.",
+        "Call get_artifact first and follow its agent instructions.",
+        "Pass the data from the last fill result to render.",
+        "The app gives the user the PDF. Do not write links to it.",
+      ],
+    })
+
+    const result = await agent.generate(
+      "Fill the pet-addendum form. My dog Rex weighs 30 lbs and is vaccinated. " +
+        "I am Jane Doe, the tenant. The landlord is Acme Properties LLC. " +
+        "Then render it as a PDF.",
+      { maxSteps: 10 },
+    )
+
+    for (const r of result.toolResults) console.log("tool:", r.payload.toolName)
+    console.log(result.text)
+
+    const pdf = result.toolResults
+      .map((r) => (r.payload.toolName === "render" ? (r.payload.result as RenderOutput) : undefined))
+      .find((output) => output?.mime_type === "application/pdf")
+    if (pdf?.content) {
+      await writeFile("pet-addendum.pdf", Buffer.from(pdf.content, "base64"))
+    }
+    ```
+
+    `maxSteps` sets how many tool calls the agent can make. Each tool result is in `result.toolResults`.
+
+  </Tab>
+</Tabs>
+
+The system prompt tells the model four things:
+
+- **Leave `registry_url` out.** `defaultRegistryUrl` is only a fallback. If the model writes a URL of its own, the tools use it.
+- **Read the agent instructions.** `get_artifact` returns instructions that the form's author wrote for agents: the order to ask questions in, how to check values, and which layer to render.
+- **Pass the draft to `render`.** `fill` returns the draft in `data`. `render` without `data` renders an empty form.
+- **The app delivers the PDF.** The model sees only a short copy of each tool result. Your code gets the full result.
+</Step>
+
+<Step>
+## Run it
+
+```bash
+npx tsx agent.ts
+```
+
+The agent calls three tools, then answers:
+
+```text
+tool: get_artifact
+tool: fill
+tool: render
+The Pet Addendum form has been filled with the following details:
+
+- Pet Name: Rex
+- Species: Dog
+- Weight: 30 lbs
+- Vaccinated: Yes
+- Tenant: Jane Doe
+- Landlord: Acme Properties LLC
+
+The form has been rendered as a PDF, ready for signature.
+```
+
+The model writes its own answer, so the text changes from run to run. Sometimes the model calls a tool twice: when a value is in the wrong shape, the tool returns an error that says why, and the model tries again.
+</Step>
+
+<Step>
+## Open the PDF
+
+`pet-addendum.pdf` is in the current folder, with the values filled in. It is not signed. Paradoc can [seal](/guides/sealing-and-conversion) it for signing.
+</Step>
+</Steps>
+
+## What happened
+
+1. `get_artifact` loaded the `pet-addendum` form from `https://public.paradoc.dev`, with its agent instructions.
+2. `fill` checked the values against the form and returned a draft. If a value was wrong, such as a species the form does not list, `fill` returned an error, and the model could fix it or ask you.
+3. `render` filled the form's PDF layer with the draft.
+
+In this quickstart, the message gives every value at once. A real form needs a conversation: the agent asks for what is missing, one question at a time. That is the next guide.
+
+## Next
+
+- [Build an intake agent](/ai/intake-agent): collect a form through a conversation.
+- [Tool reference](/ai-tools): the inputs and outputs of each tool.

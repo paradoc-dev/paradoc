@@ -15,7 +15,7 @@ npm install @paradoc/ai-sdk ai zod @ai-sdk/openai
 `paradocTools()` returns all ten operations under their canonical snake_case names so the map can be passed directly to `generateText`, `streamText`, or an AI SDK agent.
 
 ```typescript
-import { generateText } from "ai";
+import { generateText, isStepCount } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { paradocTools } from "@paradoc/ai-sdk";
 
@@ -24,9 +24,12 @@ const result = await generateText({
   tools: paradocTools({
     defaultRegistryUrl: "https://public.paradoc.dev",
   }),
-  prompt: "Find the purchase agreement artifact and inspect its required fields.",
+  stopWhen: isStepCount(10),
+  prompt: "Find the pet-addendum artifact and list its required fields.",
 });
 ```
+
+`generateText` and `streamText` stop after one step unless `stopWhen` is set. Without it, the model calls one tool and stops.
 
 The collection keys and tool IDs are:
 

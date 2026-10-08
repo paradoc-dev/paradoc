@@ -225,6 +225,26 @@ describe('shared AI tool contract', () => {
 		expect(fetch).toHaveBeenCalledTimes(2)
 	})
 
+	it('resolves a registry source without registry_url through the default registry', async () => {
+		const fetch = vi.fn(async (input: string | URL) => {
+			const url = String(input)
+			if (url === 'https://registry.example/registry.json') return Response.json({ items: [{ name: 'notice', path: 'notice.json' }] })
+			if (url === 'https://registry.example/notice.json') return Response.json(documentArtifact)
+			return new Response('missing', { status: 404 })
+		})
+		const result = await executeRender({ source: 'registry', artifact_name: 'notice' }, { defaultRegistryUrl: 'https://registry.example', fetch })
+		expect(result).toMatchObject({ success: true, artifact_kind: 'document', content: 'A notice document.' })
+		expect(fetch).toHaveBeenCalledWith('https://registry.example/registry.json', expect.anything())
+	})
+
+	it('reports missing_registry_url for a registry source with no registry_url and no default', async () => {
+		const fetch = vi.fn(async () => Response.json({}))
+		const result = await executeRender({ source: 'registry', artifact_name: 'notice' }, { fetch })
+		expect(result.success).toBe(false)
+		expect(result.error).toMatchObject({ code: 'missing_registry_url' })
+		expect(fetch).not.toHaveBeenCalled()
+	})
+
 	it('bounds request cache entries and isolates custom fetch identities', async () => {
 		const context = createToolExecutionContext({ maxCacheEntries: 1 })
 		const firstFetch = vi.fn(async () => Response.json({ value: 'first' }))

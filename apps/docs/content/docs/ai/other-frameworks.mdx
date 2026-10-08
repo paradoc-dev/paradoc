@@ -1,72 +1,96 @@
 ---
-title: Other frameworks
-description: Call the Paradoc tools from plain code, or adapt them to a framework without an adapter
+title: Use another framework
+description: Call the Paradoc tools from plain code, or adapt them to a framework that has no adapter
 ogTitle: Paradoc tools for other frameworks
-ogDescription: Use the Paradoc tool schemas and execute functions directly, or build an adapter for another AI framework
+ogDescription: Call the Paradoc tools directly, or wrap them for any AI framework with the framework-neutral tool definitions
 ---
 
-Paradoc has adapters for the [Vercel AI SDK](/ai/ai-sdk), [TanStack AI](/ai/tanstack-ai), and [Mastra](/ai/mastra). For any other framework, or to call the tools from your own code, use `@paradoc/ai-tools`: the package every adapter wraps. It has no AI framework dependency.
-
-## Installation
+Paradoc has adapters for the Vercel AI SDK, TanStack AI, and Mastra. For any other framework, or to call the tools from your own code, use `@paradoc/ai-tools`. It is the package every adapter wraps, and it does not depend on an AI framework.
 
 ```bash
 npm install @paradoc/ai-tools
 ```
 
-Requires Node.js 22.13 or newer.
+It needs Node.js 22.13 or newer.
 
 ## Call the tools from your code
 
-Each tool has an execute function that takes the tool's snake_case input. A tool failure does not throw: the result carries an `error` object.
+Each tool has an execute function, such as `executeFill` for `fill`. It takes the same snake_case input as the tool, and the same configuration as the adapters.
 
 ```typescript
 import { executeFill, executeGetFillState, executeRender } from "@paradoc/ai-tools"
 
-const source = {
-  source: "registry",
-  registry_url: "https://public.paradoc.dev",
-  artifact_name: "pet-addendum",
-} as const
+const config = { defaultRegistryUrl: "https://public.paradoc.dev" }
+const source = { source: "registry", artifact_name: "pet-addendum" } as const
 
-const draft = await executeFill({
-  ...source,
-  data: {
-    fields: { petName: "Buddy", species: "dog", weight: 45, isVaccinated: true },
-    parties: {
-      tenant: { id: "tenant-0", name: "Jane Doe" },
-      landlord: { id: "landlord-0", name: "Acme Properties LLC", legalName: "Acme Properties LLC" },
+const draft = await executeFill(
+  {
+    ...source,
+    data: {
+      fields: { petName: "Rex", species: "dog", weight: 30, isVaccinated: true },
+      parties: { tenant: { name: "Jane Doe" } },
     },
   },
-})
+  config,
+)
 if (!draft.accepted) throw new Error(draft.error?.message)
 
-const state = await executeGetFillState({
-  ...source,
-  data: draft.data,
-  evaluation_context: draft.evaluation_context,
-})
+const state = await executeGetFillState(
+  { ...source, data: draft.data, evaluation_context: draft.evaluation_context },
+  config,
+)
+console.log(state.next) // { kind: "party", key: "landlord", required: true, order: 1 }
 
-const rendered = await executeRender({
-  ...source,
-  data: draft.data,
-  evaluation_context: draft.evaluation_context,
-  layer: "markdown",
-})
+const preview = await executeRender(
+  { ...source, data: draft.data, evaluation_context: draft.evaluation_context, layer: "markdown" },
+  config,
+)
+console.log(preview.content)
 ```
 
-## Build an adapter
+An execute function does not throw when the tool fails. Its result has an `error` object instead. See [Errors](/ai-tools#errors).
 
-`toolDefinitions` maps each tool name to its name, model-facing description, Zod input and output schemas, and execute function. An adapter maps each definition to its framework's tool type:
+## Write an adapter
+
+`toolDefinitions` has the name, the description for the model, the Zod input and output schemas, and the execute function of each tool. An adapter turns each one into the tool type of its framework:
 
 ```typescript
-import { toolDefinitions } from "@paradoc/ai-tools"
+import {
+  boundModelValue,
+  configForExecution,
+  operationNames,
+  toolDefinitions,
+  type ParadocToolsConfig,
+} from "@paradoc/ai-tools"
+import { z } from "zod"
 
-const { name, description, input_schema, output_schema, execute } = toolDefinitions.render
+export function myFrameworkTools(config?: ParadocToolsConfig) {
+  return operationNames.map((name) => {
+    const definition = toolDefinitions[name]
+    return {
+      name: definition.name,
+      description: definition.description,
+      parameters: z.toJSONSchema(definition.input_schema, { io: "input" }),
+      async execute(input: unknown, signal?: AbortSignal) {
+        // Join the framework's abort signal to the configured ones.
+        const output = await definition.execute(input as never, configForExecution(config, signal))
+        // Your code keeps the full result. The model gets a bounded copy.
+        return { output, forModel: boundModelValue(output, config?.maxOutputBytes) }
+      },
+    }
+  })
+}
 ```
 
-The [AI SDK](/ai/ai-sdk), [TanStack AI](/ai/tanstack-ai), and [Mastra](/ai/mastra) adapters are complete examples.
+An adapter must do three things:
+
+- **Describe the input.** Give the framework the Zod schema, or the JSON Schema made from it. Make the JSON Schema from the input side (`io: "input"`), because some fields have defaults.
+- **Join the abort signals.** `configForExecution(config, signal)` joins the framework's abort signal to `signal` and `context.signal` from the configuration.
+- **Bound what the model sees.** `boundModelValue(output, maxBytes)` cuts long `content`, such as a base64 PDF, to `maxOutputBytes` (default 16,384) and marks it `truncated: true`. Return the full result to application code.
+
+The [Vercel AI SDK](https://github.com/paradoc-dev/paradoc/tree/main/packages/ai-sdk), [TanStack AI](https://github.com/paradoc-dev/paradoc/tree/main/packages/tanstack-ai), and [Mastra](https://github.com/paradoc-dev/paradoc/tree/main/packages/mastra) adapters are complete examples.
 
 ## Next
 
-- [`@paradoc/ai-tools` API](/ai-tools/api): every export, the configuration, and the request context.
+- [`@paradoc/ai-tools` API](/ai-tools/api): every export and the configuration.
 - [Tool reference](/ai-tools): the inputs and outputs of each tool.

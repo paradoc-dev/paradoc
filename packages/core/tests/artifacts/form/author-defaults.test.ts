@@ -20,7 +20,7 @@ describe('a form keeps what its author wrote', () => {
 	test('an omitted party count still defaults to one party', () => {
 		const sale = form.from(input)
 		expect(() => sale.fill({ parties: { buyer: { id: 'buyer-0', name: 'A' } } })).not.toThrow()
-		expect(() => sale.fill({ parties: { buyer: [{ id: 'buyer-0', name: 'A' }, { id: 'buyer-1', name: 'B' }] } })).toThrow(/must be an object/)
+		expect(() => sale.fill({ parties: { buyer: [{ id: 'buyer-0', name: 'A' }, { id: 'buyer-1', name: 'B' }] } })).toThrow(/takes one party object, not an array/)
 	})
 
 	test('a zero rating step and an invalid pattern are rejected at validation', () => {
