@@ -163,27 +163,52 @@ function fieldText(path: string): string {
   return keeps().get(`field:${path}`)?.textContent ?? "";
 }
 
-describe("a purchase order filled by a session", () => {
-  // Claims 1 and 2 in one walk: every state from empty to complete is
-  // rendered once, and each render is compared with the one before it.
-  it("renders every state between empty and complete, and each answer leaves every other keep's node alone", async () => {
-    const runtime = purchaseOrderRuntime();
-    let session = emptySession(NAME);
+/**
+ * Every state of the fill, from empty to complete, in the order the engine asks.
+ *
+ * Walked once, when the file is collected, so each state can be its own test.
+ * One test that rendered all of them ran close to the default timeout on a
+ * loaded machine, and a failure named no state.
+ */
+interface FillState {
+  session: FormSession;
+  /** What the step into this state did; null for the empty session. */
+  did: string | null;
+}
 
-    await show(session);
-    let before = keeps();
-    let beforeText = new Map([...before].map(([id, node]) => [id, node.textContent ?? ""]));
-    expect(before.size).toBeGreaterThan(0);
+function walkFill(): FillState[] {
+  const runtime = purchaseOrderRuntime();
+  const states: FillState[] = [{ session: emptySession(NAME), did: null }];
+  for (;;) {
+    const current = states[states.length - 1]!;
+    const answered = step(current.session, runtime);
+    if (!answered) return states;
+    if (states.length > 60) throw new Error("the fill did not finish within 60 steps");
+    states.push({ session: answered.session, did: answered.did });
+  }
+}
+
+const FILL = walkFill();
+
+describe("a purchase order filled by a session", () => {
+  // Claim 1: every state from empty to complete renders. Claim 2: each answer,
+  // rendered over the state before it, leaves every other keep's node alone.
+  it("renders the empty session as a document", async () => {
+    await show(FILL[0]!.session);
+    expect(keeps().size).toBeGreaterThan(0);
     // Nothing has been answered, so every value is blank and the totals have
     // nothing to add up. The document is still a document.
     expect(fieldText("orderNumber")).toContain("—");
+  });
 
-    for (let count = 0; count < 60; count++) {
-      const answered = step(session, runtime);
-      if (!answered) break;
-      session = answered.session;
+  it.each(FILL.slice(1).map((state, index) => ({ ...state, previous: FILL[index]!, index: index + 1 })))(
+    "renders state $index ($did) and leaves every other keep's node alone",
+    async ({ session, did, previous }) => {
+      await show(previous.session);
+      const before = keeps();
+      const beforeText = new Map([...before].map(([id, node]) => [id, node.textContent ?? ""]));
+
       await show(session);
-
       const after = keeps();
       expect(after.size).toBeGreaterThan(0);
       for (const [id, node] of before) {
@@ -195,16 +220,18 @@ describe("a purchase order filled by a session", () => {
       // A field answer changes exactly its own keep. A party answer changes the
       // signature blocks, and answering the currency reprints every money value
       // there is, so only the field case is pinned down this precisely.
-      if (answered.did === "orderNumber") {
+      if (did === "orderNumber") {
         const changed = [...after].filter(([id, node]) => beforeText.get(id) !== node.textContent);
         expect(changed.map(([id]) => id)).toEqual(["field:orderNumber"]);
       }
-
-      before = after;
-      beforeText = new Map([...after].map(([id, node]) => [id, node.textContent ?? ""]));
     }
+  );
 
-    expect(deriveView(session, runtime).phase).toBe("ready");
+  it("ends the walk ready, with the answers printed", async () => {
+    const { session } = FILL[FILL.length - 1]!;
+    expect(FILL.map((state) => state.did)).toContain("orderNumber");
+    expect(deriveView(session, purchaseOrderRuntime()).phase).toBe("ready");
+    await show(session);
     expect(fieldText("orderNumber")).toContain(purchaseOrderData.fields.orderNumber as string);
   });
 
