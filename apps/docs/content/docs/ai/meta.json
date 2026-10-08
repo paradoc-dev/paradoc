@@ -1,5 +1,12 @@
 {
-  "title": "AI",
-  "pages": ["index", "ai-sdk", "tanstack-ai", "mastra", "ai-tools", "tools"],
+  "title": "AI agents",
+  "pages": [
+    "index",
+    "ai-sdk",
+    "tanstack-ai",
+    "mastra",
+    "other-frameworks",
+    "skills"
+  ],
   "defaultOpen": false
 }

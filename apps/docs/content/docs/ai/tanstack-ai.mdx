@@ -5,7 +5,7 @@ ogTitle: TanStack AI — Paradoc AI
 ogDescription: Integrate Paradoc tools into TanStack AI applications with @paradoc/tanstack-ai
 ---
 
-`@paradoc/tanstack-ai` wraps the [`@paradoc/ai-tools`](/ai/ai-tools) operations with TanStack AI's `toolDefinition().server()` pattern. The tools run on the server and pass straight to `chat()`.
+`@paradoc/tanstack-ai` wraps the [`@paradoc/ai-tools`](/ai/other-frameworks) operations with TanStack AI's `toolDefinition().server()` pattern. The tools run on the server and pass straight to `chat()`.
 
 ## Installation
 
@@ -72,7 +72,7 @@ Each tool also has a definition function, such as `renderDefinition()`.
 
 ## Configuration
 
-`paradocTools()` and each factory take `ParadocToolsConfig`. See the [configuration reference](/ai#configuration). TanStack AI's execution `abortSignal` is combined with `signal` and `context.signal`. `maxOutputBytes` bounds only the result copy sent to the model; application code receives the complete result.
+`paradocTools()` and each factory take `ParadocToolsConfig`. See the [configuration reference](/ai-tools/api#configuration). TanStack AI's execution `abortSignal` is combined with `signal` and `context.signal`. `maxOutputBytes` bounds only the result copy sent to the model; application code receives the complete result.
 
 ## API
 
@@ -82,16 +82,16 @@ Returns a `ParadocToolSet`: a readonly array of ten server tools in this order.
 
 | Tool name | Server factory | Definition | Subpath |
 |-----------|----------------|------------|---------|
-| [`get_registry`](/ai/tools/get-registry) | `getRegistry()` | `getRegistryDefinition()` | `@paradoc/tanstack-ai/get-registry` |
-| [`get_artifact`](/ai/tools/get-artifact) | `getArtifact()` | `getArtifactDefinition()` | `@paradoc/tanstack-ai/get-artifact` |
-| [`inspect_artifact`](/ai/tools/inspect-artifact) | `inspectArtifact()` | `inspectArtifactDefinition()` | `@paradoc/tanstack-ai/inspect-artifact` |
-| [`validate_artifact`](/ai/tools/validate-artifact) | `validateArtifact()` | `validateArtifactDefinition()` | `@paradoc/tanstack-ai/validate-artifact` |
-| [`validate_input`](/ai/tools/validate-input) | `validateInput()` | `validateInputDefinition()` | `@paradoc/tanstack-ai/validate-input` |
-| [`fill`](/ai/tools/fill) | `fill()` | `fillDefinition()` | `@paradoc/tanstack-ai/fill` |
-| [`get_fill_state`](/ai/tools/get-fill-state) | `getFillState()` | `getFillStateDefinition()` | `@paradoc/tanstack-ai/get-fill-state` |
-| [`update_fill`](/ai/tools/update-fill) | `updateFill()` | `updateFillDefinition()` | `@paradoc/tanstack-ai/update-fill` |
-| [`render`](/ai/tools/render) | `render()` | `renderDefinition()` | `@paradoc/tanstack-ai/render` |
-| [`extract`](/ai/tools/extract) | `extract()` | `extractDefinition()` | `@paradoc/tanstack-ai/extract` |
+| [`get_registry`](/ai-tools/get-registry) | `getRegistry()` | `getRegistryDefinition()` | `@paradoc/tanstack-ai/get-registry` |
+| [`get_artifact`](/ai-tools/get-artifact) | `getArtifact()` | `getArtifactDefinition()` | `@paradoc/tanstack-ai/get-artifact` |
+| [`inspect_artifact`](/ai-tools/inspect-artifact) | `inspectArtifact()` | `inspectArtifactDefinition()` | `@paradoc/tanstack-ai/inspect-artifact` |
+| [`validate_artifact`](/ai-tools/validate-artifact) | `validateArtifact()` | `validateArtifactDefinition()` | `@paradoc/tanstack-ai/validate-artifact` |
+| [`validate_input`](/ai-tools/validate-input) | `validateInput()` | `validateInputDefinition()` | `@paradoc/tanstack-ai/validate-input` |
+| [`fill`](/ai-tools/fill) | `fill()` | `fillDefinition()` | `@paradoc/tanstack-ai/fill` |
+| [`get_fill_state`](/ai-tools/get-fill-state) | `getFillState()` | `getFillStateDefinition()` | `@paradoc/tanstack-ai/get-fill-state` |
+| [`update_fill`](/ai-tools/update-fill) | `updateFill()` | `updateFillDefinition()` | `@paradoc/tanstack-ai/update-fill` |
+| [`render`](/ai-tools/render) | `render()` | `renderDefinition()` | `@paradoc/tanstack-ai/render` |
+| [`extract`](/ai-tools/extract) | `extract()` | `extractDefinition()` | `@paradoc/tanstack-ai/extract` |
 
 Each subpath default-exports its server factory and also exports the factory and definition function by name. The package root also exports `operationNames`.
 

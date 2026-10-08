@@ -1,0 +1,9 @@
+{
+  "title": "Shared",
+  "pages": [
+    "layer",
+    "content-ref",
+    "logic"
+  ],
+  "defaultOpen": false
+}

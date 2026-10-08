@@ -5,7 +5,7 @@ ogTitle: Mastra — Paradoc AI
 ogDescription: Integrate Paradoc tools into Mastra agents with @paradoc/mastra
 ---
 
-`@paradoc/mastra` wraps the [`@paradoc/ai-tools`](/ai/ai-tools) operations with Mastra's `createTool()`. Pass the tools to a Mastra `Agent`.
+`@paradoc/mastra` wraps the [`@paradoc/ai-tools`](/ai/other-frameworks) operations with Mastra's `createTool()`. Pass the tools to a Mastra `Agent`.
 
 ## Installation
 
@@ -55,13 +55,13 @@ Each factory is also the named and default export of its package subpath, such a
 
 ## Configuration
 
-The adapter takes `ParadocMastraConfig`, an alias of [`ParadocToolsConfig`](/ai#configuration):
+The adapter takes `ParadocMastraConfig`, an alias of [`ParadocToolsConfig`](/ai-tools/api#configuration):
 
 | Option | Type | Description |
 |--------|------|-------------|
 | `maxOutputBytes` | `number` | Maximum bytes of `content` the model sees. Default `DEFAULT_MODEL_OUTPUT_MAX_BYTES` (16,384). |
 
-The limit applies to text and base64 content, such as a [`render`](/ai/tools/render) result. Content over the limit is cut and marked `truncated: true`. Your application code still gets the full result.
+The limit applies to text and base64 content, such as a [`render`](/ai-tools/render) result. Content over the limit is cut and marked `truncated: true`. Your application code still gets the full result.
 
 ```typescript
 const tools = paradocTools({
@@ -80,16 +80,16 @@ Returns ten Mastra tools keyed by their snake_case names.
 
 | Key | Factory |
 |-----|---------|
-| [`get_registry`](/ai/tools/get-registry) | `getRegistry()` |
-| [`get_artifact`](/ai/tools/get-artifact) | `getArtifact()` |
-| [`inspect_artifact`](/ai/tools/inspect-artifact) | `inspectArtifact()` |
-| [`validate_artifact`](/ai/tools/validate-artifact) | `validateArtifact()` |
-| [`validate_input`](/ai/tools/validate-input) | `validateInput()` |
-| [`fill`](/ai/tools/fill) | `fill()` |
-| [`get_fill_state`](/ai/tools/get-fill-state) | `getFillState()` |
-| [`update_fill`](/ai/tools/update-fill) | `updateFill()` |
-| [`render`](/ai/tools/render) | `render()` |
-| [`extract`](/ai/tools/extract) | `extract()` |
+| [`get_registry`](/ai-tools/get-registry) | `getRegistry()` |
+| [`get_artifact`](/ai-tools/get-artifact) | `getArtifact()` |
+| [`inspect_artifact`](/ai-tools/inspect-artifact) | `inspectArtifact()` |
+| [`validate_artifact`](/ai-tools/validate-artifact) | `validateArtifact()` |
+| [`validate_input`](/ai-tools/validate-input) | `validateInput()` |
+| [`fill`](/ai-tools/fill) | `fill()` |
+| [`get_fill_state`](/ai-tools/get-fill-state) | `getFillState()` |
+| [`update_fill`](/ai-tools/update-fill) | `updateFill()` |
+| [`render`](/ai-tools/render) | `render()` |
+| [`extract`](/ai-tools/extract) | `extract()` |
 
 Every factory takes an optional `ParadocMastraConfig`. The package also exports `operationNames` and `DEFAULT_MODEL_OUTPUT_MAX_BYTES`.
 

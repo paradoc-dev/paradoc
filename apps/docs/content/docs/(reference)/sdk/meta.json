@@ -1,0 +1,17 @@
+{
+  "title": "SDK",
+  "pages": [
+    "index",
+    "artifacts",
+    "primitives",
+    "renderers",
+    "formatting",
+    "expr",
+    "resolvers",
+    "sessions",
+    "react",
+    "react-pdf",
+    "essentials"
+  ],
+  "defaultOpen": false
+}

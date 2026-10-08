@@ -1,15 +1,13 @@
 {
   "title": "Docs",
   "pages": [
+    "---Get started---",
     "index",
     "quickstart",
     "concepts",
     "guides",
-    "schemas",
-    "sdk",
-    "cli",
-    "skill",
     "ai",
+    "(reference)",
     "components",
     "changelog"
   ],

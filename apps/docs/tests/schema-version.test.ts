@@ -30,7 +30,7 @@ function handWrittenVersions(file: string, text: string): string[] {
   return text
     .split('\n')
     .map((line, index) => ({ line, number: index + 1 }))
-    .filter(({ line }) => !(file === 'schemas/index.mdx' && VERSION_HISTORY_ROW.test(line)))
+    .filter(({ line }) => !(file === '(reference)/schemas/index.mdx' && VERSION_HISTORY_ROW.test(line)))
     .filter(({ line }) => DATED_SCHEMA_URL.test(line) || (/schema/i.test(line) && SCHEMA_VERSIONS.some((version) => line.includes(version))))
     .map(({ line, number }) => `${file}:${number}: ${line.trim()}`)
 }
@@ -87,13 +87,13 @@ describe('docs content', () => {
     expect(handWrittenVersions('guides/forms.mdx', '  "$schema": "https://schema.paradoc.dev/2026-08-06.json",')).toHaveLength(1)
     expect(handWrittenVersions('guides/forms.mdx', '$schema: https://schema.paradoc.dev/1999-01-01.json')).toHaveLength(1)
     expect(handWrittenVersions('mcp/tools/validate.mdx', `    "schema": "${SCHEMA_VERSION}",`)).toHaveLength(1)
-    expect(handWrittenVersions('schemas/index.mdx', `The current schema version is \`${SCHEMA_VERSION}\`.`)).toHaveLength(1)
+    expect(handWrittenVersions('(reference)/schemas/index.mdx', `The current schema version is \`${SCHEMA_VERSION}\`.`)).toHaveLength(1)
   })
 
   test('accepts tokens and the version history table', () => {
     expect(handWrittenVersions('guides/forms.mdx', `"$schema": "https://schema.paradoc.dev/${SCHEMA_VERSION_TOKEN}.json"`)).toEqual([])
-    expect(handWrittenVersions('schemas/index.mdx', `| \`${SCHEMA_VERSION}\` | Adds list fields. |`)).toEqual([])
-    expect(handWrittenVersions('ai/tools/fill.mdx', `"asOf": { "date": "${SCHEMA_VERSION}" }`)).toEqual([])
+    expect(handWrittenVersions('(reference)/schemas/index.mdx', `| \`${SCHEMA_VERSION}\` | Adds list fields. |`)).toEqual([])
+    expect(handWrittenVersions('(reference)/ai-tools/fill.mdx', `"asOf": { "date": "${SCHEMA_VERSION}" }`)).toEqual([])
   })
 
   test('no page hand-writes a schema version', () => {

@@ -8,6 +8,7 @@ import {
 } from "@paradoc/agent-discovery";
 import { getLLMText } from "@/lib/get-llm-text";
 import { createDocsHandler } from "@/lib/docs-delivery";
+import { redirectMovedPage } from "@/lib/moved-pages";
 import { source } from "@/lib/source";
 
 function notFound(request: Request): Response {
@@ -49,6 +50,7 @@ const docs = createDocsHandler({
 export default createServerEntry({
   fetch: async (request) =>
     handleDiscoveryRequest(request, DOCS_ORIGIN) ??
+    redirectMovedPage(request) ??
     withHomepageLinks(request, await docs(request), {
       href: "/llms.txt",
       type: "text/plain",

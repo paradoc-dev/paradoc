@@ -1,43 +1,32 @@
 ---
-title: AI Tools
-description: Add Paradoc document tools to your own AI agents with framework adapters
-ogTitle: Paradoc AI Tools
-ogDescription: npm packages that give AI agents ten Paradoc tools to find, inspect, validate, fill, render, and read back documents
+title: Overview
+description: What Paradoc gives AI agents, and how to add it to yours
+ogTitle: Paradoc for AI agents
+ogDescription: Ten document tools for AI agents, with adapters for the Vercel AI SDK, TanStack AI, and Mastra, and skills for coding agents
 ---
 
-The Paradoc AI packages give your own AI agents tools to find, inspect, validate, fill, and render documents, and to read filled PDF forms back into data. Unlike the hosted MCP server, these are npm packages you install and run in your own stack.
+Paradoc gives AI agents ten document tools. With them an agent can find an artifact in a registry, inspect it, validate it, fill it, render it, and read a filled PDF form back into data.
 
-## Packages
+## Pick a route
 
-| Package | Description | Install |
-|---------|-------------|---------|
-| [`@paradoc/ai-tools`](/ai/ai-tools) | Framework-neutral tool contract: Zod schemas, execute functions, registry client | `npm install @paradoc/ai-tools` |
-| [`@paradoc/ai-sdk`](/ai/ai-sdk) | Vercel AI SDK 7 adapter | `npm install @paradoc/ai-sdk ai zod` |
-| [`@paradoc/tanstack-ai`](/ai/tanstack-ai) | TanStack AI adapter | `npm install @paradoc/tanstack-ai@0.7.0 @tanstack/ai@0.53.0 @tanstack/ai-openai@0.22.5 zod` |
-| [`@paradoc/mastra`](/ai/mastra) | Mastra adapter | `npm install @paradoc/mastra @mastra/core zod` |
+| You want | Use |
+|----------|-----|
+| An agent you build to call the tools | The AI tool packages: install the adapter for your framework, below |
+| A coding agent, such as Claude Code, to write Paradoc code with you | [Agent skills](/ai/skills) |
+| A hosted tool server that any MCP client connects to | The hosted MCP server at `mcp.paradoc.dev`. See [how it differs](#differences-from-the-mcp-server). |
 
-Install the adapter for your framework. Each adapter depends on `@paradoc/ai-tools`, so every adapter exposes the same tools with the same schemas.
+## Add the tools to your agent
 
-## Tools
+| Package | Use it for | Install |
+|---------|------------|---------|
+| [`@paradoc/ai-sdk`](/ai/ai-sdk) | Vercel AI SDK 7 | `npm install @paradoc/ai-sdk ai zod` |
+| [`@paradoc/tanstack-ai`](/ai/tanstack-ai) | TanStack AI | `npm install @paradoc/tanstack-ai@0.7.0 @tanstack/ai@0.53.0 @tanstack/ai-openai@0.22.5 zod` |
+| [`@paradoc/mastra`](/ai/mastra) | Mastra | `npm install @paradoc/mastra @mastra/core zod` |
+| [`@paradoc/ai-tools`](/ai/other-frameworks) | Any other framework, or plain code | `npm install @paradoc/ai-tools` |
 
-Every adapter exposes ten tools. Tool names and input fields are snake_case.
+Each adapter wraps `@paradoc/ai-tools`, so every adapter exposes the same tools with the same schemas.
 
-| Tool | Description |
-|------|-------------|
-| [`get_registry`](/ai/tools/get-registry) | Discover the artifacts in a registry |
-| [`get_artifact`](/ai/tools/get-artifact) | Retrieve one artifact and its instructions from a registry |
-| [`inspect_artifact`](/ai/tools/inspect-artifact) | Return a bounded description of an artifact's fields, parties, annexes, items, and layers |
-| [`validate_artifact`](/ai/tools/validate-artifact) | Validate an artifact definition against the schema and logic rules |
-| [`validate_input`](/ai/tools/validate-input) | Validate and normalize one field, party, annex, or checklist item value |
-| [`fill`](/ai/tools/fill) | Start a form or checklist draft from seed data |
-| [`get_fill_state`](/ai/tools/get-fill-state) | Report draft progress, open targets, rules, and the next target |
-| [`update_fill`](/ai/tools/update-fill) | Merge, clear, or reset values in an existing draft |
-| [`render`](/ai/tools/render) | Render a form, document, or checklist through one of its layers |
-| [`extract`](/ai/tools/extract) | Read a filled PDF form back into form data, with a report for each field |
-
-All tools except `get_registry` and `get_artifact` take a [source](/ai/tools#sources): inline artifact JSON, a URL, or a registry item.
-
-## Quick start
+### Quick start
 
 <Tabs items={['Vercel AI SDK', 'TanStack AI', 'Mastra']} groupId="ai-framework" persist>
   <Tab value="Vercel AI SDK">
@@ -101,51 +90,12 @@ All tools except `get_registry` and `get_artifact` take a [source](/ai/tools#sou
   </Tab>
 </Tabs>
 
-## Composing with other tools
 
-In the AI SDK and Mastra adapters, `paradocTools()` returns an object keyed by tool name. Spread it next to your own tools, or pick the ones you need:
+### The tools
 
-```typescript
-import { paradocTools } from "@paradoc/ai-sdk"
+Every adapter exposes the same ten tools, named in snake_case: `get_registry`, `get_artifact`, `inspect_artifact`, `validate_artifact`, `validate_input`, `fill`, `get_fill_state`, `update_fill`, `render`, and `extract`. The [tool reference](/ai-tools) gives the inputs and outputs of each one.
 
-const { validate_artifact, render } = paradocTools()
-
-const result = await generateText({
-  model,
-  tools: { validate_artifact, render },
-  prompt: "...",
-})
-```
-
-The TanStack AI adapter returns an array, as TanStack AI's `chat()` expects. See [TanStack AI](/ai/tanstack-ai#composing-with-other-tools).
-
-## Configuration
-
-All adapters accept `ParadocToolsConfig` from `@paradoc/ai-tools`:
-
-```typescript
-paradocTools({
-  defaultRegistryUrl: "https://public.paradoc.dev",
-  fetch: customFetchWithAuth,
-  approvedOrigins: ["https://public.paradoc.dev"],
-  maxOutputBytes: 200_000,
-})
-```
-
-| Option | Type | Description |
-|--------|------|-------------|
-| `defaultRegistryUrl` | `string` | Registry used when a call omits `registry_url`. An explicit input always wins. |
-| `fetch` | `typeof fetch` | Custom fetch for auth headers or test mocks |
-| `allowLocalDevelopment` | `boolean` | Allow loopback and private-network hosts, including over HTTP. Off by default; otherwise only public HTTPS URLs are fetched. |
-| `approvedOrigins` | `string[]` | Origin allowlist for every registry, artifact, instruction, and layer request |
-| `maxRedirects` | `number` | Maximum validated redirects per request. Default `3`. |
-| `context` | `ToolExecutionContext` | Request-scoped cache and signal. Create one per request with `createToolExecutionContext()`. |
-| `signal` | `AbortSignal` | Abort all work for the call |
-| `maxOutputBytes` | `number` | Maximum content bytes sent to the model; defaults to 16,384 |
-
-`approvedOrigins` matches complete origins, including scheme and port. `allowLocalDevelopment` permits loopback and private hosts; plain HTTP remains limited to local hosts.
-
-Every adapter combines the framework's abort signal with `signal` and `context.signal`, returns the complete result to application code, and bounds the model-facing copy with `maxOutputBytes`.
+Every adapter takes the same options, such as a default registry and an origin allowlist. See [Configuration](/ai-tools/api#configuration).
 
 ## Differences from the MCP server
 
@@ -157,4 +107,4 @@ Every adapter combines the framework's abort signal with `signal` and `context.s
 | **Render output** | Short-link URL or inline | Inline only |
 | **Auth** | Every `/mcp` request needs an OAuth bearer token scoped to an organization, or an `x-api-key` header. An OAuth connection is granted test, live, or both modes in the console; with both, each platform call names its mode. | Your config (`fetch`, API keys) |
 | **Tools only here** | `list_artifacts`, `list_registries`, `search`, and platform tools for e-signature envelopes, payments, and extraction jobs | `inspect_artifact`, `validate_input`, `get_fill_state`, `update_fill` |
-| **Extraction** | The platform `extract` tool runs hosted extraction jobs, including scanned and flattened documents | [`extract`](/ai/tools/extract) reads the fields of a fillable PDF in your own process, with no service call |
+| **Extraction** | The platform `extract` tool runs hosted extraction jobs, including scanned and flattened documents | [`extract`](/ai-tools/extract) reads the fields of a fillable PDF in your own process, with no service call |

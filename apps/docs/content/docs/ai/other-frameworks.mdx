@@ -1,0 +1,72 @@
+---
+title: Other frameworks
+description: Call the Paradoc tools from plain code, or adapt them to a framework without an adapter
+ogTitle: Paradoc tools for other frameworks
+ogDescription: Use the Paradoc tool schemas and execute functions directly, or build an adapter for another AI framework
+---
+
+Paradoc has adapters for the [Vercel AI SDK](/ai/ai-sdk), [TanStack AI](/ai/tanstack-ai), and [Mastra](/ai/mastra). For any other framework, or to call the tools from your own code, use `@paradoc/ai-tools`: the package every adapter wraps. It has no AI framework dependency.
+
+## Installation
+
+```bash
+npm install @paradoc/ai-tools
+```
+
+Requires Node.js 22.13 or newer.
+
+## Call the tools from your code
+
+Each tool has an execute function that takes the tool's snake_case input. A tool failure does not throw: the result carries an `error` object.
+
+```typescript
+import { executeFill, executeGetFillState, executeRender } from "@paradoc/ai-tools"
+
+const source = {
+  source: "registry",
+  registry_url: "https://public.paradoc.dev",
+  artifact_name: "pet-addendum",
+} as const
+
+const draft = await executeFill({
+  ...source,
+  data: {
+    fields: { petName: "Buddy", species: "dog", weight: 45, isVaccinated: true },
+    parties: {
+      tenant: { id: "tenant-0", name: "Jane Doe" },
+      landlord: { id: "landlord-0", name: "Acme Properties LLC", legalName: "Acme Properties LLC" },
+    },
+  },
+})
+if (!draft.accepted) throw new Error(draft.error?.message)
+
+const state = await executeGetFillState({
+  ...source,
+  data: draft.data,
+  evaluation_context: draft.evaluation_context,
+})
+
+const rendered = await executeRender({
+  ...source,
+  data: draft.data,
+  evaluation_context: draft.evaluation_context,
+  layer: "markdown",
+})
+```
+
+## Build an adapter
+
+`toolDefinitions` maps each tool name to its name, model-facing description, Zod input and output schemas, and execute function. An adapter maps each definition to its framework's tool type:
+
+```typescript
+import { toolDefinitions } from "@paradoc/ai-tools"
+
+const { name, description, input_schema, output_schema, execute } = toolDefinitions.render
+```
+
+The [AI SDK](/ai/ai-sdk), [TanStack AI](/ai/tanstack-ai), and [Mastra](/ai/mastra) adapters are complete examples.
+
+## Next
+
+- [`@paradoc/ai-tools` API](/ai-tools/api): every export, the configuration, and the request context.
+- [Tool reference](/ai-tools): the inputs and outputs of each tool.

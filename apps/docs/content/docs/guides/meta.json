@@ -4,16 +4,16 @@
     "index",
     "forms",
     "documents",
-    "sealing-and-conversion",
-    "hosted-sealing-and-conversion",
-    "platform-access",
-    "registry-versions",
     "checklists",
     "bundles",
-    "packets",
     "text-layers",
     "pdf-layers",
-    "react-layers"
+    "react-layers",
+    "sealing-and-conversion",
+    "packets",
+    "hosted-sealing-and-conversion",
+    "platform-access",
+    "registry-versions"
   ],
   "defaultOpen": false,
   "icon": "Compass"

@@ -1,0 +1,71 @@
+---
+title: Overview
+description: TypeScript SDK for creating and working with Paradoc artifacts
+ogTitle: Paradoc SDK Reference
+ogDescription: TypeScript SDK for creating and working with Paradoc artifacts
+---
+
+The `@paradoc/sdk` package is the main framework entry point for creating,
+validating, rendering, and sealing Paradoc artifacts.
+
+The SDK builds artifacts in TypeScript. For the JSON shape of the same artifacts, see the [schema reference](/schemas).
+
+## Installation
+
+<Tabs items={['npm', 'pnpm', 'yarn', 'bun']} groupId="package-manager" persist>
+  <Tab value="npm">
+    ```bash
+    npm install @paradoc/sdk
+    ```
+  </Tab>
+  <Tab value="pnpm">
+    ```bash
+    pnpm add @paradoc/sdk
+    ```
+  </Tab>
+  <Tab value="yarn">
+    ```bash
+    yarn add @paradoc/sdk
+    ```
+  </Tab>
+  <Tab value="bun">
+    ```bash
+    bun add @paradoc/sdk
+    ```
+  </Tab>
+</Tabs>
+
+
+
+## What the SDK includes
+
+`@paradoc/sdk` re-exports four packages, so one import covers the common path:
+
+| Package | Description |
+|---------|-------------|
+| [`@paradoc/core`](/sdk/artifacts) | Builders, instances, lifecycle types, bundle assembly, and sealing for every artifact type |
+| [`@paradoc/format`](/sdk/formatting) | Locale-aware presentation of artifact values |
+| [`@paradoc/sessions`](/sdk/sessions) | Event-sourced form-completion sessions |
+| [`@paradoc/render`](/sdk/renderers) | The MIME-selected `createLayerRenderer()` entry point, plus the PDF placement helpers `locate`, `locator`, and `extractFieldsFromPdf` |
+
+The SDK also exports `hostedSealAdapter`, which converts non-PDF layers through the hosted converter when you seal.
+
+Install `@paradoc/render` directly when you import its format subpaths
+(`@paradoc/render/text`, `/pdf`, `/docx`) or want rendering as an explicit
+dependency.
+
+## Related packages
+
+These packages are not part of `@paradoc/sdk`. Install each one on its own.
+
+| Package | Description |
+|---------|-------------|
+| [`@paradoc/resolvers`](/sdk/resolvers) | Read file-backed layers from the filesystem (`/fs`), over HTTP (`/http`), or from memory (`/memory`) |
+| [`@paradoc/expr`](/sdk/expr) | The expression language behind artifact logic |
+| [`@paradoc/react`](/sdk/react) | React bindings, pagination, and the runtime for React layers |
+| [`@paradoc/react-pdf`](/sdk/react-pdf) | PDF rendering and composition checks for `@paradoc/react` |
+| [`@paradoc/essentials`](/sdk/essentials) | Ready-to-use artifacts for common business forms |
+| [`@paradoc/ai-tools`](/ai/other-frameworks) | Framework-neutral AI tool definitions |
+| [`@paradoc/ai-sdk`](/ai/ai-sdk) | Adapter for the Vercel AI SDK |
+| [`@paradoc/tanstack-ai`](/ai/tanstack-ai) | Adapter for TanStack AI |
+| [`@paradoc/mastra`](/ai/mastra) | Adapter for Mastra |

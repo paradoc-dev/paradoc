@@ -1,6 +1,13 @@
 {
   "title": "Concepts",
-  "pages": ["index", "forms", "rendering", "logic", "composition"],
+  "pages": [
+    "index",
+    "forms",
+    "rendering",
+    "logic",
+    "composition",
+    "registries"
+  ],
   "defaultOpen": false,
   "icon": "Layers"
 }

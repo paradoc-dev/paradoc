@@ -1,0 +1,10 @@
+{
+  "title": "CLI",
+  "pages": [
+    "index",
+    "projects",
+    "configuration",
+    "commands"
+  ],
+  "defaultOpen": false
+}

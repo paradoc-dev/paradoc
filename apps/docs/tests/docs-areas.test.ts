@@ -2,7 +2,7 @@
  * The header tabs and their sidebar trees derive from the content folders.
  *
  * The first half builds a page tree from the real `content/docs` folder, the
- * way the site does, and checks the three areas and what each one lists. The
+ * way the site does, and checks the four areas and what each one lists. The
  * second half pins the rules on a small synthetic tree.
  */
 import { readdirSync, readFileSync } from "node:fs";
@@ -71,34 +71,87 @@ function group(tree: PageTree.Root, name: string) {
 describe("the docs areas, from the content folders", () => {
   const source = loader({ baseUrl: "/", source: { files: readContentFiles() } });
   const areas = getDocsAreas(source.getPageTree());
-  const [docs, components, changelog] = areas;
+  const [docs, reference, components, changelog] = areas;
 
-  test("are Docs, Components and Changelog, in that order", () => {
+  /** The top-level folder named `name` in an area's tree. */
+  function section(tree: PageTree.Root, name: string) {
+    const node = tree.children.find(
+      (child) => child.type === "folder" && child.name === name,
+    );
+    expect(node, `section "${name}"`).toBeDefined();
+    return node as PageTree.Folder;
+  }
+
+  test("are Docs, Reference, Components and Changelog, in that order", () => {
     expect(areas.map((area) => area.title)).toEqual([
       "Docs",
+      "Reference",
       "Components",
       "Changelog",
     ]);
     expect(areas.map((area) => area.url)).toEqual([
       "/",
+      "/sdk",
       "/components",
       "/changelog",
     ]);
   });
 
-  test("Docs lists the guides and the reference groups as equals, without the other areas", () => {
+  test("Docs holds the learning path, without the reference", () => {
     expect(names(docs.tree.children)).toEqual([
-      "Welcome",
+      "--- Get started ---",
+      "Introduction",
       "Quickstart",
       "Concepts",
       "Guides",
-      "Schemas",
-      "SDK",
-      "CLI",
-      "Skill",
-      "AI",
+      "AI agents",
     ]);
     expect(docs.sidebar).toBe(true);
+  });
+
+  test("AI agents goes from the overview to each framework, then the skills", () => {
+    const ai = section(docs.tree, "AI agents");
+    expect(names(ai.children)).toEqual([
+      "Overview",
+      "Vercel AI SDK",
+      "TanStack AI",
+      "Mastra",
+      "Other frameworks",
+      "Agent skills",
+    ]);
+    const skills = ai.children.at(-1) as PageTree.Folder;
+    expect(skills.index?.url).toBe("/ai/skills");
+    expect(names(skills.children)).toEqual(["React skill"]);
+  });
+
+  test("Reference lists the SDK, schemas, CLI and AI tools, each from its overview", () => {
+    expect(names(reference.tree.children)).toEqual([
+      "SDK",
+      "Schemas",
+      "CLI",
+      "AI tools",
+    ]);
+    for (const folder of reference.tree.children as PageTree.Folder[]) {
+      expect(folder.children[0]).toMatchObject({ type: "page", name: "Overview" });
+    }
+    expect(reference.sidebar).toBe(true);
+    expect(findDocsArea(areas, "/ai-tools/fill")).toBe(reference);
+    expect(findDocsArea(areas, "/cli/commands/registry/add")).toBe(reference);
+  });
+
+  test("a nested folder opens from its own row, not from an overview row inside it", () => {
+    const artifacts = section(reference.tree, "SDK").children.find(
+      (child) => child.type === "folder" && child.name === "Artifacts",
+    ) as PageTree.Folder;
+    expect(artifacts.index?.url).toBe("/sdk/artifacts");
+    expect(artifacts.children.map((child) => child.type === "page" && child.url)).not.toContain(
+      "/sdk/artifacts",
+    );
+
+    const commands = section(reference.tree, "CLI").children.at(-1) as PageTree.Folder;
+    expect(commands.name).toBe("Commands");
+    expect(commands.index?.url).toBe("/cli/commands");
+    expect(commands.children.at(-1)).toMatchObject({ type: "folder", name: "registry" });
   });
 
   test("Components lists Getting started, the components alphabetically, then the blocks", () => {

@@ -1,0 +1,9 @@
+{
+  "title": "Renderers",
+  "pages": [
+    "text",
+    "docx",
+    "pdf"
+  ],
+  "defaultOpen": false
+}

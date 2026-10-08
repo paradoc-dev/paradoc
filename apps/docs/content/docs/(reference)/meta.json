@@ -1,0 +1,10 @@
+{
+  "title": "Reference",
+  "root": true,
+  "pages": [
+    "sdk",
+    "schemas",
+    "cli",
+    "ai-tools"
+  ]
+}

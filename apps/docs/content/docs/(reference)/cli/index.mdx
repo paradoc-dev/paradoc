@@ -1,0 +1,68 @@
+---
+title: Overview
+description: Command-line interface for managing Paradoc artifacts
+ogTitle: Paradoc CLI
+ogDescription: Install and manage Paradoc artifacts from registries using the CLI
+---
+
+The Paradoc CLI (`paradoc`) is a command-line tool for working with Paradoc artifacts — structured definitions of forms, documents, checklists, and bundles. It takes a registry-first approach: discover and install pre-built artifacts from shared registries, then validate, render, and manage them locally. It's also an authoring tool for creating new artifacts from scratch.
+
+## Key capabilities
+
+- Install artifacts from public or private registries
+- Create new artifacts (forms, documents, checklists, bundles)
+- Validate artifacts against the Paradoc JSON Schema
+- Render layers to PDF, DOCX, or Markdown
+- Diff and patch artifacts
+- Build and host your own registries
+- Generate TypeScript types from artifacts
+
+## Installation
+
+The CLI requires Node.js 22 or newer.
+
+<Tabs items={['npm', 'pnpm', 'yarn', 'bun']} groupId="package-manager" persist>
+  <Tab value="npm">
+    ```bash
+    npm install -g paradoc-cli
+    ```
+  </Tab>
+  <Tab value="pnpm">
+    ```bash
+    pnpm add -g paradoc-cli
+    ```
+  </Tab>
+  <Tab value="yarn">
+    ```bash
+    yarn global add paradoc-cli
+    ```
+  </Tab>
+  <Tab value="bun">
+    ```bash
+    bun add -g paradoc-cli
+    ```
+  </Tab>
+</Tabs>
+
+Verify the installation:
+
+```bash
+paradoc --version
+```
+
+The package registers one command, `paradoc`.
+
+The CLI is published as two packages with the same version and behavior: `paradoc-cli` and `@paradoc/cli`. Install one of them, not both. Each registers the `paradoc` command, so a second global install fails with `EEXIST`. These docs use `paradoc-cli`.
+
+To run it once without a global install:
+
+```bash
+npx paradoc-cli --version
+```
+
+## Next steps
+
+- [Projects](/cli/projects) - Project structure, manifest, lock file, and output formats
+- [Configuration](/cli/configuration) - Global and project settings, environment variables and cache
+- [Registries](/concepts/registries) - Consuming and creating artifact registries
+- [Command reference](/cli/commands) - Full list of available commands

@@ -8,8 +8,10 @@ import type * as PageTree from "fumadocs-core/page-tree";
  * Areas derive from the content folders, not from a list kept in the app. A
  * top-level folder whose meta.json sets `root: true` is an area of its own;
  * every other top-level entry belongs to the default area, named after the
- * page tree root (the `title` in `content/docs/meta.json`). An area made of a
- * single page has nothing to list, so it renders without a sidebar.
+ * page tree root (the `title` in `content/docs/meta.json`). A folder group
+ * such as `(reference)` adds no URL segment, so an area can gather several
+ * folders without moving their pages. An area made of a single page has
+ * nothing to list, so it renders without a sidebar.
  */
 export interface DocsArea {
   title: string;

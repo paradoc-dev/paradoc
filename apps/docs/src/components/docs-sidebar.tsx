@@ -248,7 +248,7 @@ function TreeFolder({
           external={node.index.external}
           active={indexActive}
           aria-current={indexActive ? "page" : undefined}
-          className={pageRow}
+          className={collapsible ? folderRow : pageRow}
           style={indent(depth)}
         >
           <span className="truncate">{node.name}</span>
