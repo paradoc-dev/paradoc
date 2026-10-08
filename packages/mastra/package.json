@@ -1,6 +1,6 @@
 {
   "name": "@paradoc/mastra",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "Mastra adapter for Paradoc tools — wraps @paradoc/ai-tools with Mastra createTool()",
   "type": "module",
   "main": "./dist/index.js",

@@ -1,6 +1,6 @@
 {
   "name": "@paradoc/react",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "Headless React bindings, pagination, and document runtime for Paradoc",
   "type": "module",
   "main": "./dist/index.js",

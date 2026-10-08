@@ -1,6 +1,6 @@
 {
   "name": "@paradoc/react-pdf",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "PDF rendering and composition checks for @paradoc/react",
   "type": "module",
   "main": "./dist/index.js",

@@ -4,6 +4,35 @@ All notable changes to Paradoc. Packages are versioned in lockstep.
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-10-08
+
+Paradoc 0.7.1 fixes problems that real models hit with the AI tools. Renders no longer report a blank file as success, registry calls can rely on the configured default registry, and the Mastra adapter passes free-form JSON through intact.
+
+### Highlights
+
+- `render` refuses a form or checklist with no values instead of returning a blank file. Set `blank: true` to render a blank copy on purpose.
+- `registry_url` is optional. A call without it uses `defaultRegistryUrl`.
+- `get_fill_state` returns typed targets, exported as `FillTarget` and `FillItemState` from every adapter.
+- Mastra tools keep `data`, `patch` and `artifact` inputs, so OpenAI models no longer send `null` for them.
+- The documentation has separate Docs and Reference tabs, and the AI agents section is rewritten as task guides.
+
+### Other changes
+
+#### AI tools
+
+- `render` with missing, `null` or empty `data` for a form or checklist returns `success: false` with `missing_data`. If you render blank copies, pass `blank: true`.
+- A registry call with no `registry_url` and no `defaultRegistryUrl` fails with `missing_registry_url`.
+- The `get_fill_state` output schema types `open_required`, `open_optional`, `blocked`, `done`, `candidates` and `next`.
+
+#### Core
+
+- Progressive validation refuses an array for a party role with `max` 1. Pass one party object.
+
+#### Adapters
+
+- `@paradoc/mastra` creates its tools with `strict: false`.
+- `@paradoc/ai-sdk`, `@paradoc/mastra` and `@paradoc/tanstack-ai` export the `FillTarget` and `FillItemState` types.
+
 ## [0.7.0] - 2026-10-08
 
 Paradoc 0.7 records who issued a form and which edition an artifact encodes, and lets bundles address registry artifacts by edition and version. It also adds PDF digital-signature helpers and per-overlay fonts to the renderer.
